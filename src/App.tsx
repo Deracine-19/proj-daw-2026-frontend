@@ -12,6 +12,7 @@ import ClienteLayout from "@/components/layout/ClienteLayout";
 import ReservarPage from "@/pages/cliente/ReservarPage";
 import ReservasPage from "@/pages/admin/ReservasPage";
 import EnConstruccion from "@/components/EnConstruccion";
+import { Toaster } from "./components/ui/sonner";
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      <Toaster />
     </AuthProvider>
   );
 }
