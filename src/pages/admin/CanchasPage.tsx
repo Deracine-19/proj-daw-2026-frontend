@@ -13,10 +13,55 @@ function formatoMoneda(n: number) {
 
 const FORM_VACIO = { nombre: "", descripcion: "", precioHora: 0, cantidadJugadores: 0 };
 
+type ColumnaOrdenable = "nombre" | "cantidadJugadores" | "precioHora" | "estado";
+
+function compararValores(a: CanchaDto, b: CanchaDto, columna: ColumnaOrdenable): number {
+  switch (columna) {
+    case "nombre":
+      return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
+    case "estado":
+      return Number(a.estado) - Number(b.estado);
+    case "cantidadJugadores":
+      return a.cantidadJugadores - b.cantidadJugadores;
+    case "precioHora":
+      return a.precioHora - b.precioHora;
+  }
+}
+
+function EncabezadoOrdenable({
+  label,
+  columna,
+  ordenColumna,
+  ordenDireccion,
+  onClick,
+}: {
+  label: string;
+  columna: ColumnaOrdenable;
+  ordenColumna: ColumnaOrdenable | null;
+  ordenDireccion: "asc" | "desc";
+  onClick: (columna: ColumnaOrdenable) => void;
+}) {
+  const activa = ordenColumna === columna;
+  return (
+    <button
+      onClick={() => onClick(columna)}
+      className="flex items-center gap-1 text-[11px] uppercase tracking-[.06em] text-[#71717a] hover:text-[#a1a1aa]"
+    >
+      {label}
+      <span className={activa ? "text-[#e4e4e7]" : "text-[#3f3f46]"}>
+        {activa ? (ordenDireccion === "asc" ? "▲" : "▼") : "▲"}
+      </span>
+    </button>
+  );
+}
+
 function CanchasPage() {
   const [canchas, setCanchas] = useState<CanchaDto[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+
+  const [ordenColumna, setOrdenColumna] = useState<ColumnaOrdenable | null>(null);
+  const [ordenDireccion, setOrdenDireccion] = useState<"asc" | "desc">("asc");
 
   const [editando, setEditando] = useState<CanchaDto | null>(null);
   const [form, setForm] = useState(FORM_VACIO);
@@ -39,6 +84,15 @@ function CanchasPage() {
       setError("No se pudo cargar la lista de canchas.");
     } finally {
       setCargando(false);
+    }
+  }
+
+  function cambiarOrden(columna: ColumnaOrdenable) {
+    if (ordenColumna === columna) {
+      setOrdenDireccion((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setOrdenColumna(columna);
+      setOrdenDireccion("asc");
     }
   }
 
@@ -89,6 +143,13 @@ function CanchasPage() {
     }
   }
 
+  const canchasOrdenadas = ordenColumna
+    ? [...canchas].sort((a, b) => {
+        const resultado = compararValores(a, b, ordenColumna);
+        return ordenDireccion === "asc" ? resultado : -resultado;
+      })
+    : canchas;
+
   const activasCount = canchas.filter((c) => c.estado).length;
   const stats = [
     { label: "Canchas activas", value: `${activasCount} / ${canchas.length}`, delta: "En operación", color: "#71717a" },
@@ -125,14 +186,14 @@ function CanchasPage() {
         <div className="overflow-hidden rounded-[14px] border border-[#1f1f22] bg-[#0c0c0e]">
           <div className="flex items-center justify-between border-b border-[#1f1f22] px-5 py-4">
             <span className="text-[15px] font-semibold">Canchas</span>
-            <span className="text-[13px] text-[#71717a]">{canchas.length} canchas registradas</span>
+            <span className="text-[13px] text-[#71717a]">{canchasOrdenadas.length} canchas registradas</span>
           </div>
 
           <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] items-center gap-4 border-b border-[#1f1f22] bg-[#0a0a0c] px-5 py-3">
-            <span className="text-[11px] uppercase tracking-[.06em] text-[#71717a]">Cancha</span>
-            <span className="text-[11px] uppercase tracking-[.06em] text-[#71717a]">Jugadores</span>
-            <span className="text-[11px] uppercase tracking-[.06em] text-[#71717a]">Precio/h</span>
-            <span className="text-[11px] uppercase tracking-[.06em] text-[#71717a]">Estado</span>
+            <EncabezadoOrdenable label="Cancha" columna="nombre" ordenColumna={ordenColumna} ordenDireccion={ordenDireccion} onClick={cambiarOrden} />
+            <EncabezadoOrdenable label="Jugadores" columna="cantidadJugadores" ordenColumna={ordenColumna} ordenDireccion={ordenDireccion} onClick={cambiarOrden} />
+            <EncabezadoOrdenable label="Precio/h" columna="precioHora" ordenColumna={ordenColumna} ordenDireccion={ordenDireccion} onClick={cambiarOrden} />
+            <EncabezadoOrdenable label="Estado" columna="estado" ordenColumna={ordenColumna} ordenDireccion={ordenDireccion} onClick={cambiarOrden} />
             <span className="text-[11px] uppercase tracking-[.06em] text-[#71717a]"></span>
             <span className="text-right text-[11px] uppercase tracking-[.06em] text-[#71717a]">Acciones</span>
           </div>
@@ -140,7 +201,7 @@ function CanchasPage() {
           {cargando ? (
             <div className="px-5 py-6 text-sm text-[#71717a]">Cargando canchas...</div>
           ) : (
-            canchas.map((c) => (
+            canchasOrdenadas.map((c) => (
               <div
                 key={c.id}
                 className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] items-center gap-4 border-b border-[#141417] px-5 py-3.5 transition-colors hover:bg-[#0e0e11]"

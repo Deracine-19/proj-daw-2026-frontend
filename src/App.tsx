@@ -10,6 +10,8 @@ import NoAutorizado from "@/pages/NoAutorizado";
 import { Navigate } from "react-router-dom";
 import ClienteLayout from "@/components/layout/ClienteLayout";
 import ReservarPage from "@/pages/cliente/ReservarPage";
+import ReservasPage from "@/pages/admin/ReservasPage";
+import EnConstruccion from "@/components/EnConstruccion";
 
 function App() {
   return (
@@ -32,6 +34,9 @@ function App() {
               />
               <Route path="/admin/canchas" element={<CanchasPage />} />
               <Route path="/admin/usuarios" element={<UsuariosPage />} />
+              <Route path="/admin/reservas" element={<ReservasPage />} />
+              <Route path="/admin/articulos" element={<EnConstruccion titulo="Artículos" />} />
+              <Route path="/admin/configuracion" element={<EnConstruccion titulo="Configuración" />} />
             </Route>
           </Route>
           <Route element={<ProtectedRoute allowedRoles={["Cliente"]} />}>
