@@ -200,7 +200,7 @@ function ReservarPage() {
           )}
         </div>
 
-        <div className="sticky top-[88px] flex flex-col gap-4 rounded-[14px] border border-[#1f1f22] bg-[#0c0c0e] p-5">
+        <div className="sticky top-[88px] mt-[37px] flex flex-col gap-4 rounded-[14px] border border-[#1f1f22] bg-[#0c0c0e] p-5">
           <span className="text-[15px] font-semibold">Tu reserva</span>
 
           {seleccion ? (

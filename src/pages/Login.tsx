@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { register as registerService } from "@/services/authService";
+import { isAxiosError } from "axios";
 
 type Tab = "login" | "register";
 
@@ -20,7 +21,8 @@ function Login() {
   const isReg = tab === "register";
 
   function redirigirSegunRol(rol: string) {
-    if (rol === "Administrador" || rol === "Operador") navigate("/admin/canchas");
+    if (rol === "Administrador" || rol === "Operador")
+      navigate("/admin/canchas");
     else navigate("/reservas");
   }
 
@@ -33,8 +35,16 @@ function Login() {
         await registerService({ nombre, email, password });
       }
       await login({ email, password });
-    } catch {
-      setError(isReg ? "No se pudo crear la cuenta." : "Correo o contraseña incorrectos.");
+    } catch (err) {
+      if (isAxiosError(err) && err.response?.status === 403) {
+        setError(err.response.data?.mensaje ?? "Tu cuenta está desactivada.");
+      } else {
+        setError(
+          isReg
+            ? "No se pudo crear la cuenta."
+            : "Correo o contraseña incorrectos.",
+        );
+      }
     } finally {
       setCargando(false);
     }
@@ -60,7 +70,9 @@ function Login() {
               {isReg ? "Crea tu cuenta" : "Bienvenido de vuelta"}
             </h1>
             <p className="m-0 text-center text-sm text-[#a1a1aa]">
-              {isReg ? "Reserva tu cancha de fútbol" : "Inicia sesión para reservar tu cancha"}
+              {isReg
+                ? "Reserva tu cancha de fútbol"
+                : "Inicia sesión para reservar tu cancha"}
             </p>
           </div>
         </div>
@@ -70,7 +82,9 @@ function Login() {
             type="button"
             onClick={() => setTab("login")}
             className={`h-[34px] flex-1 rounded-[7px] text-[13px] font-medium transition-all ${
-              !isReg ? "bg-[#329e26] text-[#f0fdf4]" : "bg-transparent text-[#a1a1aa]"
+              !isReg
+                ? "bg-[#329e26] text-[#f0fdf4]"
+                : "bg-transparent text-[#a1a1aa]"
             }`}
           >
             Iniciar sesión
@@ -79,7 +93,9 @@ function Login() {
             type="button"
             onClick={() => setTab("register")}
             className={`h-[34px] flex-1 rounded-[7px] text-[13px] font-medium transition-all ${
-              isReg ? "bg-[#329e26] text-[#f0fdf4]" : "bg-transparent text-[#a1a1aa]"
+              isReg
+                ? "bg-[#329e26] text-[#f0fdf4]"
+                : "bg-transparent text-[#a1a1aa]"
             }`}
           >
             Crear cuenta
@@ -89,7 +105,9 @@ function Login() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {isReg && (
             <div className="flex flex-col gap-2">
-              <label className="text-[13px] font-medium text-[#e4e4e7]">Nombre completo</label>
+              <label className="text-[13px] font-medium text-[#e4e4e7]">
+                Nombre completo
+              </label>
               <input
                 type="text"
                 placeholder="Jon Snow"
@@ -102,7 +120,9 @@ function Login() {
           )}
 
           <div className="flex flex-col gap-2">
-            <label className="text-[13px] font-medium text-[#e4e4e7]">Correo electrónico</label>
+            <label className="text-[13px] font-medium text-[#e4e4e7]">
+              Correo electrónico
+            </label>
             <input
               type="email"
               placeholder="your@email.com"
@@ -114,7 +134,9 @@ function Login() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-[13px] font-medium text-[#e4e4e7]">Contraseña</label>
+            <label className="text-[13px] font-medium text-[#e4e4e7]">
+              Contraseña
+            </label>
             <div className="relative flex items-center">
               <input
                 type={showPw ? "text" : "password"}
@@ -133,7 +155,10 @@ function Login() {
               </button>
             </div>
             {!isReg && (
-              <a href="#" className="self-end text-[13px] text-[#a1a1aa] no-underline hover:text-[#fafafa]">
+              <a
+                href="#"
+                className="self-end text-[13px] text-[#a1a1aa] no-underline hover:text-[#fafafa]"
+              >
                 ¿Olvidaste tu contraseña?
               </a>
             )}
@@ -146,7 +171,11 @@ function Login() {
             disabled={cargando}
             className="mt-0.5 h-[42px] rounded-[9px] border-none bg-[#329e26] text-sm font-semibold text-[#f0fdf4] transition-colors hover:bg-[#3aad2c] disabled:opacity-60"
           >
-            {cargando ? "Procesando..." : isReg ? "Crear cuenta" : "Iniciar sesión"}
+            {cargando
+              ? "Procesando..."
+              : isReg
+                ? "Crear cuenta"
+                : "Iniciar sesión"}
           </button>
         </form>
 

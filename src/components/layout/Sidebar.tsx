@@ -5,16 +5,16 @@ const NAV_GROUPS = [
   {
     label: "General",
     items: [
-      { to: "/admin/canchas", label: "Canchas" },
-      { to: "/admin/reservas", label: "Reservas" },
+      { to: "/admin/canchas", label: "Canchas", roles: ["Administrador"] },
+      { to: "/admin/reservas", label: "Reservas", roles: ["Administrador", "Operador"] },
     ],
   },
   {
     label: "Gestión",
     items: [
-      { to: "/admin/usuarios", label: "Usuarios" },
-      { to: "/admin/articulos", label: "Artículos" },
-      { to: "/admin/configuracion", label: "Configuración" },
+      { to: "/admin/usuarios", label: "Usuarios", roles: ["Administrador"] },
+      { to: "/admin/articulos", label: "Artículos", roles: ["Administrador"] },
+      { to: "/admin/configuracion", label: "Configuración", roles: ["Administrador"] },
     ],
   },
 ];
@@ -28,10 +28,15 @@ function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-function handleLogout() {
+  function handleLogout() {
     logout();
     navigate("/login");
   }
+
+  const gruposVisibles = NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => item.roles.includes(user?.rol ?? "")),
+  })).filter((group) => group.items.length > 0);
 
   return (
     <aside className="sticky top-0 flex h-screen w-[236px] flex-shrink-0 flex-col border-r border-[#1f1f22] bg-[#0a0a0c]">
@@ -46,7 +51,7 @@ function handleLogout() {
       </div>
 
       <nav className="flex flex-col gap-0.5 px-3 py-1.5">
-        {NAV_GROUPS.map((group) => (
+        {gruposVisibles.map((group) => (
           <div key={group.label}>
             <span className="block px-2.5 pb-1.5 pt-3 text-[10px] font-semibold uppercase tracking-[.1em] text-[#52525b]">
               {group.label}
