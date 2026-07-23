@@ -12,8 +12,8 @@ const NAV_GROUPS = [
   {
     label: "Gestión",
     items: [
-      { to: "/admin/articulos", label: "Artículos" },
       { to: "/admin/usuarios", label: "Usuarios" },
+      { to: "/admin/articulos", label: "Artículos" },
       { to: "/admin/configuracion", label: "Configuración" },
     ],
   },
@@ -40,7 +40,7 @@ function handleLogout() {
           <span className="font-mono text-[7px] text-[#52525b]">LOGO</span>
         </div>
         <div className="flex flex-col">
-          <span className="text-sm font-semibold tracking-[-0.01em]">TURF</span>
+          <span className="text-sm font-semibold tracking-[-0.01em]">PROYECTO DAW</span>
           <span className="font-mono text-[11px] text-[#52525b]">ADMIN</span>
         </div>
       </div>
