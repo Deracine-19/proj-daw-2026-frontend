@@ -3,6 +3,84 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
+@theme {
+  /* Fondos */
+  --color-page: #09090b;
+  --color-surface: #0c0c0e;
+  --color-surface-raised: #0a0a0c;
+  --color-surface-sunken: #0e0e11;
+  --color-panel: #0d0d10;
+  --color-hover: #141417;
+  --color-hover-strong: #18181b;
+
+  /* Bordes */
+  --color-line: #1f1f22;
+  --color-line-strong: #27272a;
+  --color-line-hover: #3f3f46;
+  --color-line-subtle: #141417;
+
+  /* Texto */
+  --color-ink: #fafafa;
+  --color-ink-secondary: #e4e4e7;
+  --color-ink-muted: #a1a1aa;
+  --color-ink-faint: #71717a;
+  --color-ink-disabled: #52525b;
+  --color-ink-ghost: #3f3f46;
+
+  /* Marca (verde TURF) */
+  --color-brand: #329e26;
+  --color-brand-hover: #3aad2c;
+  --color-brand-foreground: #f0fdf4;
+
+  /* Estado */
+  --color-positive: #7fd970;
+  --color-positive-bg: #12210e;
+  --color-negative: #f87171;
+  --color-negative-strong: #dc2626;
+  --color-negative-strong-hover: #ef4444;
+  --color-negative-border: #3f1d1d;
+  --color-role-operador: #3b82f6;
+}
+
+.light {
+  /* Fondos */
+  --color-page: #f6f6f7;
+  --color-surface: #ffffff;
+  --color-surface-raised: #efeff1;
+  --color-surface-sunken: #efeff1;
+  --color-panel: #ffffff;
+  --color-hover: #efeff1;
+  --color-hover-strong: #e4e4e7; /* inferido, no aparece en este mockup */
+
+  /* Bordes */
+  --color-line: #e4e4e7;
+  --color-line-strong: #e4e4e7;
+  --color-line-hover: #d4d4d8;
+  --color-line-subtle: #e4e4e7;
+
+  /* Texto */
+  --color-ink: #18181b;
+  --color-ink-secondary: #3f3f46;
+  --color-ink-muted: #52525b;
+  --color-ink-faint: #71717a;
+  --color-ink-disabled: #a1a1aa;
+  --color-ink-ghost: #d4d4d8; /* inferido, no aparece en este mockup */
+
+  /* Marca (verde TURF — igual en ambos modos) */
+  --color-brand: #329e26;
+  --color-brand-hover: #3aad2c;
+  --color-brand-foreground: #f0fdf4;
+
+  /* Estado */
+  --color-positive: #7fd970; /* confirmado — se mantiene igual que en oscuro */
+  --color-positive-bg: #f0fdf4; /* inferido, no aparece en este mockup */
+  --color-negative: #dc2626; /* inferido, no aparece en este mockup */
+  --color-negative-strong: #dc2626; /* inferido */
+  --color-negative-strong-hover: #b91c1c; /* inferido */
+  --color-negative-border: #fecaca; /* inferido */
+  --color-role-operador: #2563eb; /* inferido */
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
