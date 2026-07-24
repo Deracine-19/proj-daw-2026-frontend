@@ -28,4 +28,5 @@ src/
    VITE_API_URL=http://localhost:PUERTO/api
 ```
    (el puerto lo define el backend — revisa su `launchSettings.json`)
+
 4. `npm run dev` → abre en `http://localhost:5173`
