@@ -3,6 +3,8 @@
 Proyecto de clase (Desarrollo Web). Sistema self-service donde los clientes reservan canchas de fútbol por su cuenta, sin pasarela de pago: al reservar se genera un código de 5 caracteres que se presenta y valida en persona. Tres roles: **Cliente** (reserva), **Operador** (hace check-in y marca pagos), **Administrador** (gestiona todo).
  
 Este repo es el frontend. El backend vive en un repo separado: `proj-daw-2026-backend`.
+
+![Descripción de la imagen](docs/screenshots/login-page.png)
  
 ## Stack
  
