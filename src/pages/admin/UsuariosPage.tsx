@@ -8,6 +8,13 @@ import {
 import type { UsuarioDto } from "@/types/usuario";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const ROL_COLOR: Record<string, string> = {
   Administrador: "var(--color-brand)",
@@ -67,6 +74,7 @@ function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<UsuarioDto[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [filtroRol, setFiltroRol] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
 
@@ -176,7 +184,9 @@ function UsuariosPage() {
       u.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       u.email.toLowerCase().includes(busqueda.toLowerCase());
     const coincideRol = !filtroRol || u.rolNombre === filtroRol;
-    return coincideBusqueda && coincideRol;
+    const coincideEstado =
+      !filtroEstado || (filtroEstado === "activo" ? u.activo : !u.activo);
+    return coincideBusqueda && coincideRol && coincideEstado;
   });
 
   const usuariosOrdenados = ordenColumna
@@ -202,16 +212,33 @@ function UsuariosPage() {
               className="w-full bg-transparent text-ink outline-none placeholder:text-ink-disabled"
             />
           </div>
-          <select
-            value={filtroRol}
-            onChange={(e) => setFiltroRol(e.target.value)}
-            className="h-[34px] rounded-lg border border-line-strong bg-surface px-3 text-[13px] text-ink-secondary outline-none"
-          >
-            <option value="">Todos los roles</option>
-            {ROLES_DISPONIBLES.map((r) => (
-              <option key={r.id} value={r.nombre}>{r.nombre}</option>
-            ))}
-          </select>
+          <Select value={filtroRol || "todos"} onValueChange={(v) => setFiltroRol(v === "todos" ? "" : v)}>
+            <SelectTrigger
+              style={{ height: "34px" }}
+              className="rounded-lg border-line-strong bg-surface px-3 text-[13px] text-ink-secondary"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los roles</SelectItem>
+              {ROLES_DISPONIBLES.map((r) => (
+                <SelectItem key={r.id} value={r.nombre}>{r.nombre}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filtroEstado || "todos"} onValueChange={(v) => setFiltroEstado(v === "todos" ? "" : v)}>
+            <SelectTrigger
+              style={{ height: "34px" }}
+              className="rounded-lg border-line-strong bg-surface px-3 text-[13px] text-ink-secondary"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los estados</SelectItem>
+              <SelectItem value="activo">Activo</SelectItem>
+              <SelectItem value="inactivo">Inactivo</SelectItem>
+            </SelectContent>
+          </Select>
           <button
             onClick={() => setCreando(true)}
             className="h-[34px] rounded-lg border-none bg-brand px-3.5 text-[13px] font-semibold text-brand-foreground hover:bg-brand-hover"
@@ -273,7 +300,7 @@ function UsuariosPage() {
                       style={{ background: u.activo ? "var(--color-brand)" : "var(--color-line-strong)" }}
                     >
                       <span
-                        className="absolute top-[3px] h-4 w-4 rounded-full bg-ink transition-all"
+                        className="absolute top-[3px] h-4 w-4 rounded-full bg-surface transition-all"
                         style={{ left: u.activo ? "19px" : "3px" }}
                       />
                     </button>
@@ -329,15 +356,19 @@ function UsuariosPage() {
                     {editando?.rolNombre}
                   </div>
                 ) : (
-                  <select
-                    value={formRolId}
-                    onChange={(e) => setFormRolId(Number(e.target.value))}
-                    className="h-[42px] rounded-[9px] border border-line-strong bg-panel px-3 text-sm text-ink outline-none focus:border-ink-disabled"
-                  >
-                    {ROLES_DISPONIBLES.map((r) => (
-                      <option key={r.id} value={r.id}>{r.nombre}</option>
-                    ))}
-                  </select>
+                  <Select value={String(formRolId)} onValueChange={(v) => setFormRolId(Number(v))}>
+                    <SelectTrigger
+                      style={{ height: "42px" }}
+                      className="w-full rounded-[9px] border-line-strong bg-panel px-3 text-sm text-ink"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLES_DISPONIBLES.map((r) => (
+                        <SelectItem key={r.id} value={String(r.id)}>{r.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
             </div>
@@ -386,15 +417,19 @@ function UsuariosPage() {
               </div>
               <div className="flex flex-col gap-2">
                 <label className="text-[13px] font-medium text-ink-secondary">Rol</label>
-                <select
-                  value={nuevoRolId}
-                  onChange={(e) => setNuevoRolId(Number(e.target.value))}
-                  className="h-[42px] rounded-[9px] border border-line-strong bg-panel px-3 text-sm text-ink outline-none focus:border-ink-disabled"
-                >
-                  {ROLES_DISPONIBLES.map((r) => (
-                    <option key={r.id} value={r.id}>{r.nombre}</option>
-                  ))}
-                </select>
+                <Select value={String(nuevoRolId)} onValueChange={(v) => setNuevoRolId(Number(v))}>
+                  <SelectTrigger
+                    style={{ height: "42px" }}
+                    className="w-full rounded-[9px] border-line-strong bg-panel px-3 text-sm text-ink"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLES_DISPONIBLES.map((r) => (
+                      <SelectItem key={r.id} value={String(r.id)}>{r.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-2">

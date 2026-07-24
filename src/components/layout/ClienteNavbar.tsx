@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import ThemeToggle from "@/components/ThemeToggle";
+import { PROYECTO_NOMBRE } from "@/config/app";
+import logo from "@/assets/logo.svg";
 
 function iniciales(email?: string) {
   if (!email) return "??";
@@ -34,11 +37,9 @@ function ClienteNavbar() {
     <header className="sticky top-0 z-20 flex h-[60px] items-center justify-between border-b border-line bg-page/80 px-7 backdrop-blur-md">
       <div className="flex items-center gap-7">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-line-strong bg-[repeating-linear-gradient(135deg,var(--color-hover)_0_5px,var(--color-surface-sunken)_5px_10px)]">
-            <span className="font-mono text-[7px] text-ink-disabled">LOGO</span>
-          </div>
+          <img src={logo} alt={PROYECTO_NOMBRE} className="h-[30px] w-auto" />
           <span className="text-[15px] font-semibold tracking-[-0.01em]">
-            TURF
+            {PROYECTO_NOMBRE}
           </span>
         </div>
         <nav className="flex items-center gap-[22px]">
@@ -90,8 +91,9 @@ function ClienteNavbar() {
               </div>
               <button
                 onClick={handleLogout}
-                className="w-full px-3.5 py-2.5 text-left text-[13px] text-ink-secondary hover:bg-hover-strong"
+                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] text-ink-secondary hover:bg-hover-strong"
               >
+                <LogOut className="h-4 w-4" />
                 Cerrar sesión
               </button>
             </div>

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import {
   obtenerReservas,
   cancelarReserva as apiCancelarReserva,
@@ -7,6 +9,15 @@ import {
 } from "@/services/reservaService";
 import type { ReservaDto } from "@/services/reservaService";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 const ESTADO_COLOR: Record<string, string> = {
   CONFIRMADA: "var(--color-positive)",
@@ -40,6 +51,11 @@ function formatoFecha(fecha: string): string {
   const [anio, mes, dia] = fecha.split("-").map(Number);
   const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
   return `${dia} ${meses[mes - 1]} ${anio}`;
+}
+
+function parseFecha(fecha: string): Date {
+  const [anio, mes, dia] = fecha.split("-").map(Number);
+  return new Date(anio, mes - 1, dia);
 }
 
 function formatoHora(hora: string): string {
@@ -205,22 +221,45 @@ function ReservasPage() {
               className="w-full bg-transparent text-ink outline-none placeholder:text-ink-disabled"
             />
           </div>
-          <input
-            type="date"
-            value={filtroFecha}
-            onChange={(e) => setFiltroFecha(e.target.value)}
-            className="h-[34px] rounded-lg border border-line-strong bg-surface px-3 text-[13px] text-ink-secondary outline-none"
-          />
-          <select
-            value={filtroEstado}
-            onChange={(e) => setFiltroEstado(e.target.value)}
-            className="h-[34px] rounded-lg border border-line-strong bg-surface px-3 text-[13px] text-ink-secondary outline-none"
-          >
-            <option value="">Todos los estados</option>
-            <option value="CONFIRMADA">Confirmada</option>
-            <option value="CANCELADA">Cancelada</option>
-            <option value="NOSHOW">No-Show</option>
-          </select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="flex h-[34px] items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 text-[13px] text-ink-secondary hover:bg-hover-strong">
+                <CalendarIcon className="h-3.5 w-3.5 text-ink-faint" />
+                {filtroFecha ? formatoFecha(filtroFecha) : "Todas las fechas"}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={filtroFecha ? parseFecha(filtroFecha) : undefined}
+                onSelect={(date) => setFiltroFecha(date ? format(date, "yyyy-MM-dd") : "")}
+              />
+              {filtroFecha && (
+                <div className="border-t border-line p-2">
+                  <button
+                    onClick={() => setFiltroFecha("")}
+                    className="w-full rounded-md px-2 py-1.5 text-left text-[13px] text-ink-muted hover:bg-hover-strong"
+                  >
+                    Limpiar fecha
+                  </button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+          <Select value={filtroEstado || "todos"} onValueChange={(v) => setFiltroEstado(v === "todos" ? "" : v)}>
+            <SelectTrigger
+              style={{ height: "34px" }}
+              className="rounded-lg border-line-strong bg-surface px-3 text-[13px] text-ink-secondary"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los estados</SelectItem>
+              <SelectItem value="CONFIRMADA">Confirmada</SelectItem>
+              <SelectItem value="CANCELADA">Cancelada</SelectItem>
+              <SelectItem value="NOSHOW">No-Show</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </header>
 

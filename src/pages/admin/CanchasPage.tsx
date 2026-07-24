@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { isAxiosError } from "axios";
 import {
   obtenerCanchas,
   crearCancha,
@@ -7,6 +8,13 @@ import {
   cambiarEstadoCancha,
 } from "@/services/canchaService";
 import type { CanchaDto } from "@/types/cancha";
+
+function mensajeError(err: unknown, fallback: string): string {
+  if (isAxiosError(err) && typeof err.response?.data?.mensaje === "string") {
+    return err.response.data.mensaje;
+  }
+  return fallback;
+}
 
 function formatoMoneda(n: number) {
   return "L " + n.toLocaleString("en-US");
@@ -66,10 +74,12 @@ function CanchasPage() {
 
   const [editando, setEditando] = useState<CanchaDto | null>(null);
   const [form, setForm] = useState(FORM_VACIO);
+  const [formError, setFormError] = useState("");
   const [guardando, setGuardando] = useState(false);
 
   const [creando, setCreando] = useState(false);
   const [formNueva, setFormNueva] = useState(FORM_VACIO);
+  const [formNuevaError, setFormNuevaError] = useState("");
   const [creandoGuardando, setCreandoGuardando] = useState(false);
 
   useEffect(() => {
@@ -99,6 +109,7 @@ function CanchasPage() {
 
   function abrirEdicion(c: CanchaDto) {
     setEditando(c);
+    setFormError("");
     setForm({
       nombre: c.nombre,
       descripcion: c.descripcion,
@@ -110,12 +121,13 @@ function CanchasPage() {
   async function guardarEdicion() {
     if (!editando) return;
     setGuardando(true);
+    setFormError("");
     try {
       const actualizado = await actualizarCancha(editando.id, { ...form, estado: editando.estado });
       setCanchas((prev) => prev.map((c) => (c.id === actualizado.id ? actualizado : c)));
       setEditando(null);
-    } catch {
-      setError("No se pudo guardar el cambio.");
+    } catch (err) {
+      setFormError(mensajeError(err, "No se pudo guardar el cambio."));
     } finally {
       setGuardando(false);
     }
@@ -123,13 +135,14 @@ function CanchasPage() {
 
   async function crear() {
     setCreandoGuardando(true);
+    setFormNuevaError("");
     try {
       const nueva = await crearCancha({ ...formNueva, estado: true });
       setCanchas((prev) => [...prev, nueva]);
       setCreando(false);
       setFormNueva(FORM_VACIO);
-    } catch {
-      setError("No se pudo crear la cancha.");
+    } catch (err) {
+      setFormNuevaError(mensajeError(err, "No se pudo crear la cancha."));
     } finally {
       setCreandoGuardando(false);
     }
@@ -168,7 +181,10 @@ function CanchasPage() {
       <header className="sticky top-0 z-10 flex h-[60px] items-center justify-between gap-4 border-b border-line bg-page/80 px-7 backdrop-blur-md">
         <span className="text-base font-semibold tracking-[-0.01em]">Gestión de canchas</span>
         <button
-          onClick={() => setCreando(true)}
+          onClick={() => {
+            setFormNuevaError("");
+            setCreando(true);
+          }}
           className="h-[34px] rounded-lg border-none bg-brand px-3.5 text-[13px] font-semibold text-brand-foreground hover:bg-brand-hover"
         >
           + Nueva cancha
@@ -224,7 +240,7 @@ function CanchasPage() {
                     style={{ background: c.estado ? "var(--color-brand)" : "var(--color-line-strong)" }}
                   >
                     <span
-                      className="absolute top-[3px] h-4 w-4 rounded-full bg-ink transition-all"
+                      className="absolute top-[3px] h-4 w-4 rounded-full bg-surface transition-all"
                       style={{ left: c.estado ? "19px" : "3px" }}
                     />
                   </button>
@@ -260,6 +276,7 @@ function CanchasPage() {
               <CampoNumero label="Precio por hora" value={form.precioHora} onChange={(v) => setForm({ ...form, precioHora: v })} sinContador />
               <CampoNumero label="Cantidad de jugadores" value={form.cantidadJugadores} onChange={(v) => setForm({ ...form, cantidadJugadores: v })} />
             </div>
+            {formError && <p className="mt-4 text-sm text-negative">{formError}</p>}
             <div className="mt-6 flex justify-end gap-2">
               <button onClick={() => setEditando(null)} className="h-9 rounded-lg border border-line-strong bg-transparent px-4 text-[13px] font-medium text-ink-secondary hover:bg-hover-strong">
                 Cancelar
@@ -282,6 +299,7 @@ function CanchasPage() {
               <CampoNumero label="Precio por hora" value={formNueva.precioHora} onChange={(v) => setFormNueva({ ...formNueva, precioHora: v })} sinContador />
               <CampoNumero label="Cantidad de jugadores" value={formNueva.cantidadJugadores} onChange={(v) => setFormNueva({ ...formNueva, cantidadJugadores: v })} />
             </div>
+            {formNuevaError && <p className="mt-4 text-sm text-negative">{formNuevaError}</p>}
             <div className="mt-6 flex justify-end gap-2">
               <button onClick={() => setCreando(false)} className="h-9 rounded-lg border border-line-strong bg-transparent px-4 text-[13px] font-medium text-ink-secondary hover:bg-hover-strong">
                 Cancelar
@@ -304,7 +322,7 @@ function Campo({ label, value, onChange }: { label: string; value: string; onCha
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-[42px] rounded-[9px] border border-line-strong bg-panel px-3 text-sm text-ink outline-none focus:border-ink-disabled"
+        className="h-10.5 rounded-[9px] border border-line-strong bg-panel px-3 text-sm text-ink outline-none focus:border-ink-disabled"
       />
     </div>
   );
@@ -318,7 +336,7 @@ function CampoNumero({ label, value, onChange, sinContador = false }: { label: s
         type="number"
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className={`h-[42px] rounded-[9px] border border-line-strong bg-panel px-3 text-sm text-ink outline-none focus:border-ink-disabled ${
+        className={`h-10.5 rounded-[9px] border border-line-strong bg-panel px-3 text-sm text-ink outline-none focus:border-ink-disabled ${
           sinContador ? "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" : ""
         }`}
       />

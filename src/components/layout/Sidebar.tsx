@@ -1,6 +1,10 @@
+import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import ThemeToggle from "../ThemeToggle";
+import { PROYECTO_NOMBRE } from "@/config/app";
+import logo from "@/assets/logo.svg";
 
 const NAV_GROUPS = [
   {
@@ -36,8 +40,21 @@ function iniciales(email?: string) {
 function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickFuera(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuAbierto(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickFuera);
+    return () => document.removeEventListener("mousedown", handleClickFuera);
+  }, []);
 
   function handleLogout() {
+    setMenuAbierto(false);
     logout();
     navigate("/login");
   }
@@ -49,14 +66,17 @@ function Sidebar() {
 
   return (
     <aside className="sticky top-0 flex h-screen w-[236px] flex-shrink-0 flex-col border-r border-line bg-surface-raised">
-      <div className="flex items-center gap-2.5 px-5 pb-[18px] pt-5">
-        <div className="flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-line-strong bg-[repeating-linear-gradient(135deg,var(--color-hover)_0_5px,var(--color-surface-sunken)_5px_10px)]">
-          <span className="font-mono text-[7px] text-ink-disabled">LOGO</span>
+      <div className="flex items-center justify-between gap-2.5 px-5 pb-[18px] pt-5">
+        <div className="flex items-center gap-2.5">
+          <img src={logo} alt={PROYECTO_NOMBRE} className="h-[30px] w-auto" />
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold tracking-[-0.01em]">{PROYECTO_NOMBRE}</span>
+            <span className="font-mono text-[11px] text-ink-disabled">
+              {user?.rol === "Operador" ? "OPERADOR" : "ADMIN"}
+            </span>
+          </div>
         </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-semibold tracking-[-0.01em]">TURF</span>
-          <span className="font-mono text-[11px] text-ink-disabled">ADMIN</span>
-        </div>
+        <ThemeToggle />
       </div>
 
       <nav className="flex flex-col gap-0.5 px-3 py-1.5">
@@ -97,10 +117,13 @@ function Sidebar() {
         ))}
       </nav>
 
-      <div className="mt-auto flex items-center gap-2.5 border-t border-line px-4 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-line-strong text-xs font-semibold text-ink-secondary">
+      <div className="relative mt-auto flex items-center gap-2.5 border-t border-line px-4 py-4" ref={menuRef}>
+        <button
+          onClick={() => setMenuAbierto((v) => !v)}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-line-strong text-xs font-semibold text-ink-secondary hover:bg-line-hover"
+        >
           {iniciales(user?.email)}
-        </div>
+        </button>
         <div className="flex flex-col overflow-hidden">
           <span className="truncate text-[13px] font-medium">
             {user?.email}
@@ -109,15 +132,24 @@ function Sidebar() {
             {user?.rol}
           </span>
         </div>
-        <div className="ml-auto flex items-center gap-1">
-          <ThemeToggle />
-          <button
-            onClick={handleLogout}
-            className="text-[11px] text-ink-disabled hover:text-ink-secondary"
-          >
-            Salir
-          </button>
-        </div>
+
+        {menuAbierto && (
+          <div className="absolute bottom-full left-4 mb-2 w-52 overflow-hidden rounded-[10px] border border-line bg-surface shadow-lg">
+            <div className="border-b border-line px-3.5 py-2.5">
+              <p className="truncate text-[13px] font-medium text-ink-secondary">
+                {user?.email}
+              </p>
+              <p className="text-[11px] text-ink-faint">{user?.rol}</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] text-ink-secondary hover:bg-hover-strong"
+            >
+              <LogOut className="h-4 w-4" />
+              Cerrar sesión
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );

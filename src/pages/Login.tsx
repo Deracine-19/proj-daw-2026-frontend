@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { register as registerService } from "@/services/authService";
 import { isAxiosError } from "axios";
+import { PROYECTO_NOMBRE } from "@/config/app";
+import logo from "@/assets/logo.svg";
 
 type Tab = "login" | "register";
 
@@ -56,9 +58,7 @@ function Login() {
 
       <div className="flex w-full max-w-[360px] flex-col gap-6">
         <div className="flex flex-col items-center gap-[18px]">
-          <div className="flex h-11 w-11 items-center justify-center rounded-[11px] border border-line-strong bg-[repeating-linear-gradient(135deg,var(--color-hover)_0_6px,var(--color-surface-sunken)_6px_12px)]">
-            <span className="font-mono text-[8px] text-ink-disabled">LOGO</span>
-          </div>
+          <img src={logo} alt={PROYECTO_NOMBRE} className="h-11 w-auto" />
           <div className="flex flex-col items-center gap-1.5">
             <h1 className="m-0 text-center text-2xl font-semibold tracking-[-0.02em] text-ink">
               {isReg ? "Crea tu cuenta" : "Bienvenido de vuelta"}
