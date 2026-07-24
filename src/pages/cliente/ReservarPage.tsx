@@ -120,13 +120,13 @@ function ReservarPage() {
     <main className="mx-auto flex max-w-[1120px] flex-col gap-7 px-7 pb-20 pt-9">
       <div className="flex flex-col gap-1.5">
         <h1 className="m-0 text-[28px] font-semibold tracking-[-0.02em]">Hola</h1>
-        <p className="m-0 text-[15px] text-[#a1a1aa]">
+        <p className="m-0 text-[15px] text-ink-muted">
           Reserva tu cancha de fútbol. Elige un día y un horario disponible.
         </p>
       </div>
 
       <div className="flex flex-col gap-3">
-        <span className="text-[13px] font-medium uppercase tracking-[.06em] text-[#71717a]">Selecciona un día</span>
+        <span className="text-[13px] font-medium uppercase tracking-[.06em] text-ink-faint">Selecciona un día</span>
         <div className="flex gap-2.5 overflow-x-auto pb-1">
           {dias.map((d, i) => (
             <button
@@ -134,8 +134,8 @@ function ReservarPage() {
               onClick={() => cambiarDia(i)}
               className={`flex min-w-[60px] flex-col items-center gap-[3px] rounded-[11px] border px-1.5 py-3 transition-all ${
                 i === diaIdx
-                  ? "border-[#329e26] bg-[#329e26] text-[#f0fdf4]"
-                  : "border-[#1f1f22] bg-[#0c0c0e] text-[#e4e4e7]"
+                  ? "border-brand bg-brand text-brand-foreground"
+                  : "border-line bg-surface text-ink-secondary"
               }`}
             >
               <span className="text-[11px] uppercase tracking-[.05em] opacity-70">{d.dow}</span>
@@ -146,31 +146,31 @@ function ReservarPage() {
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-negative">{error}</p>}
 
       <div className="grid grid-cols-[1fr_320px] items-start gap-6">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <span className="text-[15px] font-semibold">Canchas disponibles</span>
-            <span className="text-[13px] text-[#71717a]">{diaActual.label}</span>
+            <span className="text-[13px] text-ink-faint">{diaActual.label}</span>
           </div>
 
           {cargando ? (
-            <div className="text-sm text-[#71717a]">Cargando disponibilidad...</div>
+            <div className="text-sm text-ink-faint">Cargando disponibilidad...</div>
           ) : (
             canchas.map((c) => (
-              <div key={c.id} className="flex flex-col gap-4 rounded-[14px] border border-[#1f1f22] bg-[#0c0c0e] p-5">
+              <div key={c.id} className="flex flex-col gap-4 rounded-[14px] border border-line bg-surface p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3.5">
-                    <div className="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-[11px] border border-[#27272a] bg-[repeating-linear-gradient(135deg,#141417_0_6px,#0e0e11_6px_12px)]">
-                      <span className="font-mono text-[7px] text-[#52525b]">FOTO</span>
+                    <div className="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-[11px] border border-line-strong bg-[repeating-linear-gradient(135deg,var(--color-hover)_0_6px,var(--color-surface-sunken)_6px_12px)]">
+                      <span className="font-mono text-[7px] text-ink-disabled">FOTO</span>
                     </div>
                     <div className="flex flex-col gap-[5px]">
                       <span className="text-base font-semibold">{c.nombre}</span>
-                      <span className="text-[13px] text-[#a1a1aa]">{c.descripcion}</span>
+                      <span className="text-[13px] text-ink-muted">{c.descripcion}</span>
                     </div>
                   </div>
-                  <span className="whitespace-nowrap text-[13px] text-[#e4e4e7]">
+                  <span className="whitespace-nowrap text-[13px] text-ink-secondary">
                     {formatoMoneda(c.precioHora)} / hora
                   </span>
                 </div>
@@ -184,10 +184,10 @@ function ReservarPage() {
                         onClick={() => elegirHorario(c, franja.hora)}
                         className={`h-9 min-w-[58px] rounded-lg px-3 text-[13px] font-medium transition-all ${
                           !franja.disponible
-                            ? "cursor-not-allowed border border-[#18181b] bg-[#0a0a0c] text-[#3f3f46] line-through"
+                            ? "cursor-not-allowed border border-hover-strong bg-surface-raised text-ink-ghost line-through"
                             : isSel
-                            ? "border border-[#329e26] bg-[#329e26] text-[#f0fdf4]"
-                            : "border border-[#27272a] bg-[#141417] text-[#e4e4e7] hover:border-[#3f3f46]"
+                            ? "border border-brand bg-brand text-brand-foreground"
+                            : "border border-line-strong bg-hover text-ink-secondary hover:border-line-hover"
                         }`}
                       >
                         {franja.hora}
@@ -200,35 +200,35 @@ function ReservarPage() {
           )}
         </div>
 
-        <div className="sticky top-[88px] mt-[37px] flex flex-col gap-4 rounded-[14px] border border-[#1f1f22] bg-[#0c0c0e] p-5">
+        <div className="sticky top-[88px] mt-[37px] flex flex-col gap-4 rounded-[14px] border border-line bg-surface p-5">
           <span className="text-[15px] font-semibold">Tu reserva</span>
 
           {seleccion ? (
             <div className="flex flex-col gap-3.5">
-              <div className="flex flex-col gap-2.5 rounded-[10px] border border-[#1f1f22] bg-[#09090b] p-3.5">
+              <div className="flex flex-col gap-2.5 rounded-[10px] border border-line bg-page p-3.5">
                 <Fila label="Cancha" valor={seleccion.canchaNombre} />
                 <Fila label="Día" valor={diaActual.label} />
                 <Fila label="Horario" valor={`${seleccion.hora} – ${sumarHora(seleccion.hora)}`} />
-                <div className="my-0.5 h-px bg-[#1f1f22]" />
+                <div className="my-0.5 h-px bg-line" />
                 <div className="flex justify-between gap-2.5">
-                  <span className="text-[13px] text-[#71717a]">Total</span>
+                  <span className="text-[13px] text-ink-faint">Total</span>
                   <span className="text-[15px] font-semibold">{formatoMoneda(seleccion.precioHora)}</span>
                 </div>
               </div>
               <button
                 onClick={confirmarReserva}
                 disabled={confirmando}
-                className="h-[42px] rounded-[9px] border-none bg-[#329e26] text-sm font-semibold text-[#f0fdf4] hover:bg-[#3aad2c] disabled:opacity-60"
+                className="h-[42px] rounded-[9px] border-none bg-brand text-sm font-semibold text-brand-foreground hover:bg-brand-hover disabled:opacity-60"
               >
                 {confirmando ? "Confirmando..." : "Confirmar reserva"}
               </button>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
-              <div className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-dashed border-[#3f3f46]">
-                <span className="text-base text-[#52525b]">+</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-dashed border-ink-ghost">
+                <span className="text-base text-ink-disabled">+</span>
               </div>
-              <p className="m-0 max-w-[200px] text-[13px] leading-relaxed text-[#71717a]">
+              <p className="m-0 max-w-[200px] text-[13px] leading-relaxed text-ink-faint">
                 Selecciona un horario disponible para ver el resumen de tu reserva.
               </p>
             </div>
@@ -238,15 +238,15 @@ function ReservarPage() {
 
       {codigoConfirmado && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-[14px] border border-[#1f1f22] bg-[#0c0c0e] p-6 text-center">
+          <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-6 text-center">
             <h2 className="mb-2 text-base font-semibold">¡Reserva confirmada!</h2>
-            <p className="mb-4 text-sm text-[#a1a1aa]">Presenta este código en la cancha para validar tu pago.</p>
-            <div className="mb-5 rounded-[10px] border border-[#329e26] bg-[#12210e] py-4 font-mono text-2xl font-semibold tracking-[.2em] text-[#7fd970]">
+            <p className="mb-4 text-sm text-ink-muted">Presenta este código en la cancha para validar tu pago.</p>
+            <div className="mb-5 rounded-[10px] border border-brand bg-positive-bg py-4 font-mono text-2xl font-semibold tracking-[.2em] text-positive">
               {codigoConfirmado}
             </div>
             <button
               onClick={() => setCodigoConfirmado(null)}
-              className="h-9 w-full rounded-lg border-none bg-[#329e26] text-[13px] font-semibold text-[#f0fdf4] hover:bg-[#3aad2c]"
+              className="h-9 w-full rounded-lg border-none bg-brand text-[13px] font-semibold text-brand-foreground hover:bg-brand-hover"
             >
               Entendido
             </button>
@@ -260,7 +260,7 @@ function ReservarPage() {
 function Fila({ label, valor }: { label: string; valor: string }) {
   return (
     <div className="flex justify-between gap-2.5">
-      <span className="text-[13px] text-[#71717a]">{label}</span>
+      <span className="text-[13px] text-ink-faint">{label}</span>
       <span className="text-right text-[13px] font-medium">{valor}</span>
     </div>
   );

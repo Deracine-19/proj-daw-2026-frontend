@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import ThemeToggle from "@/components/ThemeToggle";
 
 function iniciales(email?: string) {
   if (!email) return "??";
@@ -30,19 +31,21 @@ function ClienteNavbar() {
   }
 
   return (
-    <header className="sticky top-0 z-20 flex h-[60px] items-center justify-between border-b border-[#1f1f22] bg-[#09090b]/80 px-7 backdrop-blur-md">
+    <header className="sticky top-0 z-20 flex h-[60px] items-center justify-between border-b border-line bg-page/80 px-7 backdrop-blur-md">
       <div className="flex items-center gap-7">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-[#27272a] bg-[repeating-linear-gradient(135deg,#141417_0_5px,#0e0e11_5px_10px)]">
-            <span className="font-mono text-[7px] text-[#52525b]">LOGO</span>
+          <div className="flex h-[30px] w-[30px] items-center justify-center rounded-lg border border-line-strong bg-[repeating-linear-gradient(135deg,var(--color-hover)_0_5px,var(--color-surface-sunken)_5px_10px)]">
+            <span className="font-mono text-[7px] text-ink-disabled">LOGO</span>
           </div>
-          <span className="text-[15px] font-semibold tracking-[-0.01em]">PROYECTO DAW</span>
+          <span className="text-[15px] font-semibold tracking-[-0.01em]">
+            TURF
+          </span>
         </div>
         <nav className="flex items-center gap-[22px]">
           <NavLink
             to="/reservas"
             className={({ isActive }) =>
-              `text-sm no-underline ${isActive ? "font-medium text-[#fafafa]" : "text-[#a1a1aa] hover:text-[#fafafa]"}`
+              `text-sm no-underline ${isActive ? "font-medium text-ink" : "text-ink-muted hover:text-ink"}`
             }
           >
             Reservar
@@ -50,38 +53,44 @@ function ClienteNavbar() {
           <NavLink
             to="/mis-reservas"
             className={({ isActive }) =>
-              `text-sm no-underline ${isActive ? "font-medium text-[#fafafa]" : "text-[#a1a1aa] hover:text-[#fafafa]"}`
+              `text-sm no-underline ${isActive ? "font-medium text-ink" : "text-ink-muted hover:text-ink"}`
             }
           >
             Mis reservas
           </NavLink>
-          <span className="cursor-not-allowed text-sm text-[#52525b]">Canchas</span>
+          <span className="cursor-not-allowed text-sm text-ink-disabled">
+            Canchas
+          </span>
         </nav>
       </div>
 
       <div className="flex items-center gap-3.5">
-        <button className="flex h-[34px] items-center gap-[7px] rounded-lg border border-[#27272a] bg-transparent px-3 text-[13px] text-[#e4e4e7] hover:border-[#3f3f46] hover:bg-[#18181b]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#329e26]" />
-          2 reservas activas
+        <button className="flex h-[34px] items-center gap-[7px] rounded-lg border border-line-strong bg-transparent px-3 text-[13px] text-ink-secondary hover:border-line-hover hover:bg-hover-strong">
+          <span className="h-1.5 w-1.5 rounded-full bg-brand" />2 reservas
+          activas
         </button>
+
+        <ThemeToggle />
 
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuAbierto((v) => !v)}
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#27272a] text-[13px] font-semibold text-[#e4e4e7] hover:bg-[#3f3f46]"
+            className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-line-strong text-[13px] font-semibold text-ink-secondary hover:bg-line-hover"
           >
             {iniciales(user?.email)}
           </button>
 
           {menuAbierto && (
-            <div className="absolute right-0 top-[42px] w-56 overflow-hidden rounded-[10px] border border-[#1f1f22] bg-[#0c0c0e] shadow-lg">
-              <div className="border-b border-[#1f1f22] px-3.5 py-2.5">
-                <p className="truncate text-[13px] font-medium text-[#e4e4e7]">{user?.email}</p>
-                <p className="text-[11px] text-[#71717a]">{user?.rol}</p>
+            <div className="absolute right-0 top-[42px] w-56 overflow-hidden rounded-[10px] border border-line bg-surface shadow-lg">
+              <div className="border-b border-line px-3.5 py-2.5">
+                <p className="truncate text-[13px] font-medium text-ink-secondary">
+                  {user?.email}
+                </p>
+                <p className="text-[11px] text-ink-faint">{user?.rol}</p>
               </div>
               <button
                 onClick={handleLogout}
-                className="w-full px-3.5 py-2.5 text-left text-[13px] text-[#e4e4e7] hover:bg-[#18181b]"
+                className="w-full px-3.5 py-2.5 text-left text-[13px] text-ink-secondary hover:bg-hover-strong"
               >
                 Cerrar sesión
               </button>
