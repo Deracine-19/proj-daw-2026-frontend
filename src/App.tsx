@@ -13,42 +13,58 @@ import ReservarPage from "@/pages/cliente/ReservarPage";
 import ReservasPage from "@/pages/admin/ReservasPage";
 import EnConstruccion from "@/components/EnConstruccion";
 import { Toaster } from "./components/ui/sonner";
+import { ThemeProvider } from "./context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
+
+function AdminIndexRedirect() {
+  const { user } = useAuth();
+  return <Navigate to={user?.rol === "Operador" ? "/admin/reservas" : "/admin/canchas"} replace />;
+}
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/no-autorizado" element={<NoAutorizado />} />
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/no-autorizado" element={<NoAutorizado />} />
 
-          <Route
-            element={
-              <ProtectedRoute allowedRoles={["Administrador", "Operador"]} />
-            }
-          >
-            <Route element={<AdminLayout />}>
-              <Route
-                index
-                path="/admin"
-                element={<Navigate to="/admin/canchas" replace />}
-              />
-              <Route path="/admin/canchas" element={<CanchasPage />} />
-              <Route path="/admin/usuarios" element={<UsuariosPage />} />
-              <Route path="/admin/reservas" element={<ReservasPage />} />
-              <Route path="/admin/articulos" element={<EnConstruccion titulo="Artículos" />} />
-              <Route path="/admin/configuracion" element={<EnConstruccion titulo="Configuración" />} />
+            <Route
+              element={
+                <ProtectedRoute allowedRoles={["Administrador", "Operador"]} />
+              }
+            >
+              <Route element={<AdminLayout />}>
+                <Route index path="/admin" element={<AdminIndexRedirect />} />
+                <Route path="/admin/reservas" element={<ReservasPage />} />
+
+                <Route
+                  element={<ProtectedRoute allowedRoles={["Administrador"]} />}
+                >
+                  <Route path="/admin/canchas" element={<CanchasPage />} />
+                  <Route path="/admin/usuarios" element={<UsuariosPage />} />
+                  <Route
+                    path="/admin/articulos"
+                    element={<EnConstruccion titulo="Artículos" />}
+                  />
+                  <Route
+                    path="/admin/configuracion"
+                    element={<EnConstruccion titulo="Configuración" />}
+                  />
+                </Route>
+              </Route>
             </Route>
-          </Route>
-          <Route element={<ProtectedRoute allowedRoles={["Cliente"]} />}>
-            <Route element={<ClienteLayout />}>
-              <Route path="/reservas" element={<ReservarPage />} />
+            <Route element={<ProtectedRoute allowedRoles={["Cliente"]} />}>
+              <Route element={<ClienteLayout />}>
+                <Route path="/reservas" element={<ReservarPage />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-      </BrowserRouter>
-      <Toaster />
-    </AuthProvider>
+          </Routes>
+        </BrowserRouter>
+        <Toaster />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

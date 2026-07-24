@@ -3,7 +3,7 @@ import Sidebar from "./Sidebar";
 
 function AdminLayout() {
   return (
-    <div className="flex min-h-screen w-full bg-[#09090b] font-sans text-[#fafafa]">
+    <div className="flex min-h-screen w-full bg-page font-sans text-ink">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <Outlet />
