@@ -10,6 +10,8 @@ import NoAutorizado from "@/pages/NoAutorizado";
 import { Navigate } from "react-router-dom";
 import ClienteLayout from "@/components/layout/ClienteLayout";
 import ReservarPage from "@/pages/cliente/ReservarPage";
+import ReservaConfirmadaPage from "@/pages/cliente/ReservaConfirmadaPage";
+import MisReservasPage from "@/pages/cliente/MisReservasPage";
 import ReservasPage from "@/pages/admin/ReservasPage";
 import EnConstruccion from "@/components/EnConstruccion";
 import { Toaster } from "./components/ui/sonner";
@@ -59,6 +61,8 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={["Cliente"]} />}>
               <Route element={<ClienteLayout />}>
                 <Route path="/reservas" element={<ReservarPage />} />
+                <Route path="/reservas/confirmacion/:id" element={<ReservaConfirmadaPage />} />
+                <Route path="/mis-reservas" element={<MisReservasPage />} />
               </Route>
             </Route>
           </Routes>

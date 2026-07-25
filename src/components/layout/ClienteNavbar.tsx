@@ -5,10 +5,17 @@ import { useAuth } from "@/context/AuthContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import { PROYECTO_NOMBRE } from "@/config/app";
 import logo from "@/assets/logo.svg";
+import { obtenerMisReservas, type ReservaDto } from "@/services/reservaService";
 
 function iniciales(email?: string) {
   if (!email) return "??";
   return email.slice(0, 2).toUpperCase();
+}
+
+function esPasada(r: ReservaDto): boolean {
+  const [anio, mes, dia] = r.fecha.split("-").map(Number);
+  const [h, m] = r.horaEntrada.split(":").map(Number);
+  return new Date(anio, mes - 1, dia, h, m).getTime() < Date.now();
 }
 
 function ClienteNavbar() {
@@ -16,6 +23,7 @@ function ClienteNavbar() {
   const navigate = useNavigate();
   const [menuAbierto, setMenuAbierto] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [reservasActivas, setReservasActivas] = useState(0);
 
   useEffect(() => {
     function handleClickFuera(e: MouseEvent) {
@@ -26,6 +34,19 @@ function ClienteNavbar() {
     document.addEventListener("mousedown", handleClickFuera);
     return () => document.removeEventListener("mousedown", handleClickFuera);
   }, []);
+
+  useEffect(() => {
+    cargarReservasActivas();
+  }, []);
+
+  async function cargarReservasActivas() {
+    try {
+      const reservas = await obtenerMisReservas();
+      setReservasActivas(reservas.filter((r) => r.estadoReserva === "CONFIRMADA" && !esPasada(r)).length);
+    } catch {
+      // El badge es informativo — si falla, simplemente no se actualiza.
+    }
+  }
 
   function handleLogout() {
     setMenuAbierto(false);
@@ -66,9 +87,12 @@ function ClienteNavbar() {
       </div>
 
       <div className="flex items-center gap-3.5">
-        <button className="flex h-[34px] items-center gap-[7px] rounded-lg border border-line-strong bg-transparent px-3 text-[13px] text-ink-secondary hover:border-line-hover hover:bg-hover-strong">
-          <span className="h-1.5 w-1.5 rounded-full bg-brand" />2 reservas
-          activas
+        <button
+          onClick={() => navigate("/mis-reservas")}
+          className="flex h-[34px] items-center gap-[7px] rounded-lg border border-line-strong bg-transparent px-3 text-[13px] text-ink-secondary hover:border-line-hover hover:bg-hover-strong"
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+          {reservasActivas} {reservasActivas === 1 ? "reserva activa" : "reservas activas"}
         </button>
 
         <ThemeToggle />

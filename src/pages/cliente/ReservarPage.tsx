@@ -1,7 +1,20 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { isAxiosError } from "axios";
 import { obtenerCanchas } from "@/services/canchaService";
-import { obtenerDisponibilidad, crearReservaMock, type FranjaHoraria } from "@/services/reservaService";
+import { obtenerDisponibilidad, crearReserva, type FranjaHoraria } from "@/services/reservaService";
 import type { CanchaDto } from "@/types/cancha";
+
+function mensajeError(err: unknown, fallback: string): string {
+  if (isAxiosError(err)) {
+    const data = err.response?.data;
+    if (typeof data === "string" && data.trim()) return data;
+    if (data && typeof data === "object" && typeof (data as { mensaje?: unknown }).mensaje === "string") {
+      return (data as { mensaje: string }).mensaje;
+    }
+  }
+  return fallback;
+}
 
 const DOW = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const DOW_FULL = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -43,6 +56,20 @@ function sumarHora(hora: string) {
   return String(h).padStart(2, "0") + ":00";
 }
 
+// Evita usar toISOString() acá: convierte a UTC primero y puede correr la fecha
+// un día hacia atrás en zonas horarias negativas (ej. Honduras, UTC-6).
+function aFechaISO(fecha: Date): string {
+  const anio = fecha.getFullYear();
+  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+  const dia = String(fecha.getDate()).padStart(2, "0");
+  return `${anio}-${mes}-${dia}`;
+}
+
+// El backend usa TimeSpan y exige "HH:mm:ss" con segundos.
+function conSegundos(hora: string): string {
+  return `${hora}:00`;
+}
+
 interface Seleccion {
   canchaId: number;
   canchaNombre: string;
@@ -51,6 +78,7 @@ interface Seleccion {
 }
 
 function ReservarPage() {
+  const navigate = useNavigate();
   const [dias] = useState(() => generarDias(7));
   const [diaIdx, setDiaIdx] = useState(0);
   const [canchas, setCanchas] = useState<CanchaDto[]>([]);
@@ -58,7 +86,6 @@ function ReservarPage() {
   const [cargando, setCargando] = useState(true);
   const [seleccion, setSeleccion] = useState<Seleccion | null>(null);
   const [confirmando, setConfirmando] = useState(false);
-  const [codigoConfirmado, setCodigoConfirmado] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const diaActual = dias[diaIdx];
@@ -101,16 +128,17 @@ function ReservarPage() {
     setConfirmando(true);
     setError("");
     try {
-      const resultado = await crearReservaMock({
+      const reserva = await crearReserva({
         canchaId: seleccion.canchaId,
-        fecha: diaActual.fecha.toISOString().slice(0, 10),
-        horaEntrada: seleccion.hora,
-        horaSalida: sumarHora(seleccion.hora),
+        fecha: aFechaISO(diaActual.fecha),
+        horaEntrada: conSegundos(seleccion.hora),
+        horaSalida: conSegundos(sumarHora(seleccion.hora)),
+        articulos: [],
       });
-      setCodigoConfirmado(resultado.codigo);
       setSeleccion(null);
-    } catch {
-      setError("No se pudo confirmar la reserva. Intenta de nuevo.");
+      navigate(`/reservas/confirmacion/${reserva.id}`, { state: { reserva } });
+    } catch (err) {
+      setError(mensajeError(err, "No se pudo confirmar la reserva. Intenta de nuevo."));
     } finally {
       setConfirmando(false);
     }
@@ -235,24 +263,6 @@ function ReservarPage() {
           )}
         </div>
       </div>
-
-      {codigoConfirmado && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-6 text-center">
-            <h2 className="mb-2 text-base font-semibold">¡Reserva confirmada!</h2>
-            <p className="mb-4 text-sm text-ink-muted">Presenta este código en la cancha para validar tu pago.</p>
-            <div className="mb-5 rounded-[10px] border border-brand bg-positive-bg py-4 font-mono text-2xl font-semibold tracking-[.2em] text-positive">
-              {codigoConfirmado}
-            </div>
-            <button
-              onClick={() => setCodigoConfirmado(null)}
-              className="h-9 w-full rounded-lg border-none bg-brand text-[13px] font-semibold text-brand-foreground hover:bg-brand-hover"
-            >
-              Entendido
-            </button>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

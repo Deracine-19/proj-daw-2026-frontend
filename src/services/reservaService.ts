@@ -70,62 +70,53 @@ export async function crearReserva(dto: CrearReservaDto): Promise<ReservaDto> {
 }
 
 // ============================================================
-// MOCK — pendiente de backend real (vista de cliente / ReservarPage)
+// Disponibilidad de horarios (ReservarPage)
 // ============================================================
 
 export interface FranjaHoraria {
-  hora: string;
+  hora: string; // "HH:mm"
   disponible: boolean;
 }
 
+interface HorarioOcupadoDto {
+  horaEntrada: string; // "HH:mm:ss"
+  horaSalida: string; // "HH:mm:ss"
+}
+
+// Franjas fijas de 1 hora que ofrecemos para reservar. El backend no tiene noción
+// de "slots" (las reservas son de horario libre), así que esta grilla es una
+// decisión de producto del frontend, no algo que venga del servidor.
 const HORAS_DEL_DIA = ["08:00", "09:00", "10:00", "17:00", "18:00", "19:00", "20:00", "21:00"];
 
-function pseudoAleatorio(canchaId: number, fecha: Date, hora: string): number {
-  const seed = canchaId * 31 + fecha.getDate() * 7 + parseInt(hora, 10);
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
+function sumarHora(hora: string): string {
+  const h = parseInt(hora.split(":")[0], 10) + 1;
+  return String(h).padStart(2, "0") + ":00";
 }
 
-// TODO: reemplazar por GET /api/cancha/{id}/disponibilidad?fecha=... cuando el backend lo exponga
+// Evita usar toISOString() acá: convierte a UTC primero y puede correr la fecha
+// un día hacia atrás en zonas horarias negativas (ej. Honduras, UTC-6).
+function aFechaISO(fecha: Date): string {
+  const anio = fecha.getFullYear();
+  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+  const dia = String(fecha.getDate()).padStart(2, "0");
+  return `${anio}-${mes}-${dia}`;
+}
+
+// Dos franjas [aInicio, aFin) y [bInicio, bFin) se traslapan si aInicio < bFin && aFin > bInicio.
+// Comparación por string funciona porque "HH:mm:ss" siempre viene con ceros a la izquierda.
+function seTraslapan(aInicio: string, aFin: string, bInicio: string, bFin: string): boolean {
+  return aInicio < bFin && aFin > bInicio;
+}
+
 export async function obtenerDisponibilidad(canchaId: number, fecha: Date): Promise<FranjaHoraria[]> {
-  return new Promise((resolve) =>
-    setTimeout(
-      () =>
-        resolve(
-          HORAS_DEL_DIA.map((hora) => ({
-            hora,
-            disponible: pseudoAleatorio(canchaId, fecha, hora) > 0.25,
-          }))
-        ),
-      300
-    )
-  );
-}
+  const { data: ocupados } = await api.get<HorarioOcupadoDto[]>("/reserva/disponibilidad", {
+    params: { canchaId, fecha: aFechaISO(fecha) },
+  });
 
-function generarCodigoMock(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-}
-
-export interface ReservaCreateMockDto {
-  canchaId: number;
-  fecha: string;
-  horaEntrada: string;
-  horaSalida: string;
-}
-
-export interface ReservaCreadaDto {
-  id: number;
-  codigo: string;
-}
-
-// TODO: reemplazar por crearReserva() (arriba) cuando ReservarPage esté lista para usar el backend real.
-// OJO al hacer el cambio: crearReserva() exige horaEntrada/horaSalida en formato "HH:mm:ss" (con segundos),
-// pero ReservarPage hoy genera horas tipo "09:00" (sin segundos) para HORAS_DEL_DIA. Hay que agregar
-// ":00" al final antes de mandarlas, o el backend rechazará la petición con el mismo error de
-// TimeSpan que ya vimos al probar en Postman.
-export async function crearReservaMock(dto: ReservaCreateMockDto): Promise<ReservaCreadaDto> {
-  return new Promise((resolve) =>
-    setTimeout(() => resolve({ id: Math.floor(Math.random() * 1000), codigo: generarCodigoMock() }), 400)
-  );
+  return HORAS_DEL_DIA.map((hora) => {
+    const inicio = `${hora}:00`;
+    const fin = `${sumarHora(hora)}:00`;
+    const disponible = !ocupados.some((o) => seTraslapan(inicio, fin, o.horaEntrada, o.horaSalida));
+    return { hora, disponible };
+  });
 }
