@@ -4,6 +4,7 @@ import Login from "@/pages/Login";
 import AdminLayout from "./components/layout/AdminLayout";
 import CanchasPage from "./pages/admin/CanchasPage";
 import UsuariosPage from "./pages/admin/UsuariosPage";
+import ArticulosPage from "./pages/admin/ArticulosPage";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
 import NoAutorizado from "@/pages/NoAutorizado";
@@ -49,8 +50,7 @@ function App() {
                   <Route path="/admin/usuarios" element={<UsuariosPage />} />
                   <Route
                     path="/admin/articulos"
-                    element={<EnConstruccion titulo="Artículos" />}
-                  />
+                    element={<ArticulosPage />} />
                   <Route
                     path="/admin/configuracion"
                     element={<EnConstruccion titulo="Configuración" />}
