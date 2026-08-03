@@ -1,1 +1,1 @@
-export const PROYECTO_NOMBRE = "TURF";
+export const PROYECTO_NOMBRE = import.meta.env.VITE_NOMBRE_APP || "TURF";

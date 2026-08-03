@@ -85,8 +85,15 @@ interface HorarioOcupadoDto {
 
 // Franjas fijas de 1 hora que ofrecemos para reservar. El backend no tiene noción
 // de "slots" (las reservas son de horario libre), así que esta grilla es una
-// decisión de producto del frontend, no algo que venga del servidor.
-const HORAS_DEL_DIA = ["08:00", "09:00", "10:00", "17:00", "18:00", "19:00", "20:00", "21:00"];
+// decisión de producto del frontend, no algo que venga del servidor — pero el
+// rango (8:00 a 22:00) debe coincidir con HorarioNegocioConstantes en el backend,
+// que es quien realmente lo valida al crear la reserva.
+const HORA_APERTURA = 8;
+const HORA_CIERRE = 22;
+
+const HORAS_DEL_DIA = Array.from({ length: HORA_CIERRE - HORA_APERTURA }, (_, i) =>
+  String(HORA_APERTURA + i).padStart(2, "0") + ":00"
+);
 
 function sumarHora(hora: string): string {
   const h = parseInt(hora.split(":")[0], 10) + 1;
