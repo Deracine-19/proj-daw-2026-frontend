@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { ChevronDown } from "lucide-react";
 import { obtenerMisReservas, type ReservaDto } from "@/services/reservaService";
 
 const ESTADO_COLOR: Record<string, string> = {
@@ -31,10 +32,20 @@ function MisReservasPage() {
   const [reservas, setReservas] = useState<ReservaDto[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [expandidas, setExpandidas] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     cargar();
   }, []);
+
+  function toggleExpandida(id: number) {
+    setExpandidas((prev) => {
+      const siguiente = new Set(prev);
+      if (siguiente.has(id)) siguiente.delete(id);
+      else siguiente.add(id);
+      return siguiente;
+    });
+  }
 
   async function cargar() {
     setCargando(true);
@@ -71,36 +82,68 @@ function MisReservasPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {reservas.map((r) => (
-            <div
-              key={r.id}
-              className="flex items-center justify-between gap-4 rounded-[14px] border border-line bg-surface p-5"
-            >
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-base font-semibold">{r.nombreCancha ?? "—"}</span>
-                  <span className="font-mono text-xs text-ink-faint">{r.codigoReserva}</span>
-                </div>
-                <span className="text-[13px] text-ink-muted">
-                  {formatoFecha(r.fecha)} · {formatoHora(r.horaEntrada)} – {formatoHora(r.horaSalida)}
-                </span>
+          {reservas.map((r) => {
+            const tieneArticulos = r.articulos.length > 0;
+            const expandida = expandidas.has(r.id);
+
+            return (
+              <div key={r.id} className="overflow-hidden rounded-[14px] border border-line bg-surface">
+                <button
+                  type="button"
+                  onClick={() => tieneArticulos && toggleExpandida(r.id)}
+                  disabled={!tieneArticulos}
+                  className={`flex w-full items-center justify-between gap-4 p-5 text-left ${
+                    tieneArticulos ? "cursor-pointer hover:bg-surface-sunken" : "cursor-default"
+                  }`}
+                >
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-base font-semibold">{r.nombreCancha ?? "—"}</span>
+                      <span className="font-mono text-xs text-ink-faint">{r.codigoReserva}</span>
+                    </div>
+                    <span className="text-[13px] text-ink-muted">
+                      {formatoFecha(r.fecha)} · {formatoHora(r.horaEntrada)} – {formatoHora(r.horaSalida)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-5">
+                    <div className="flex items-center gap-6">
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-xs font-medium" style={{ color: ESTADO_COLOR[r.estadoReserva] ?? "var(--color-ink-muted)" }}>
+                          {formatoEstado(r.estadoReserva)}
+                        </span>
+                        <span
+                          className="text-xs"
+                          style={{ color: r.estadoPago ? "var(--color-positive)" : "var(--color-ink-faint)" }}
+                        >
+                          {r.estadoPago ? "Pagado" : "Pendiente"}
+                        </span>
+                      </div>
+                      <span className="font-mono text-sm font-medium">{formatoMoneda(r.total)}</span>
+                    </div>
+                    {tieneArticulos && (
+                      <ChevronDown
+                        className={`h-4 w-4 flex-shrink-0 text-ink-faint transition-transform ${expandida ? "rotate-180" : ""}`}
+                      />
+                    )}
+                  </div>
+                </button>
+
+                {expandida && tieneArticulos && (
+                  <div className="flex flex-col gap-2 border-t border-line-subtle bg-page px-5 py-4">
+                    <span className="text-[11px] uppercase tracking-[.06em] text-ink-faint">Artículos</span>
+                    {r.articulos.map((a, i) => (
+                      <div key={i} className="flex justify-between gap-2.5 text-[13px]">
+                        <span className="text-ink-secondary">
+                          {a.nombreArticulo ?? "Artículo"} × {a.cantidad}
+                        </span>
+                        <span className="font-mono text-ink-muted">{formatoMoneda(a.precioUnitario * a.cantidad)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-6">
-                <div className="flex flex-col items-end gap-1">
-                  <span className="text-xs font-medium" style={{ color: ESTADO_COLOR[r.estadoReserva] ?? "var(--color-ink-muted)" }}>
-                    {formatoEstado(r.estadoReserva)}
-                  </span>
-                  <span
-                    className="text-xs"
-                    style={{ color: r.estadoPago ? "var(--color-positive)" : "var(--color-ink-faint)" }}
-                  >
-                    {r.estadoPago ? "Pagado" : "Pendiente"}
-                  </span>
-                </div>
-                <span className="font-mono text-sm font-medium">{formatoMoneda(r.total)}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </main>

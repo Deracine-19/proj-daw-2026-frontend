@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { isAxiosError } from "axios";
 import { obtenerCanchas } from "@/services/canchaService";
+import { obtenerArticulos } from "@/services/articuloService";
 import { obtenerDisponibilidad, crearReserva, type FranjaHoraria } from "@/services/reservaService";
 import type { CanchaDto } from "@/types/cancha";
+import type { ArticuloDto } from "@/types/articulo";
 
 function mensajeError(err: unknown, fallback: string): string {
   if (isAxiosError(err)) {
@@ -85,6 +87,9 @@ function ReservarPage() {
   const [disponibilidad, setDisponibilidad] = useState<Record<number, FranjaHoraria[]>>({});
   const [cargando, setCargando] = useState(true);
   const [seleccion, setSeleccion] = useState<Seleccion | null>(null);
+  const [articulos, setArticulos] = useState<ArticuloDto[]>([]);
+  const [articulosSeleccionados, setArticulosSeleccionados] = useState<Set<number>>(new Set());
+  const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [error, setError] = useState("");
 
@@ -94,6 +99,19 @@ function ReservarPage() {
     cargarCanchasYDisponibilidad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [diaIdx]);
+
+  useEffect(() => {
+    cargarArticulos();
+  }, []);
+
+  async function cargarArticulos() {
+    try {
+      const todos = await obtenerArticulos();
+      setArticulos(todos.filter((a) => a.estado));
+    } catch {
+      // Los artículos son un extra opcional — si fallan, no debe bloquear la reserva de la cancha.
+    }
+  }
 
   async function cargarCanchasYDisponibilidad() {
     setCargando(true);
@@ -117,10 +135,20 @@ function ReservarPage() {
   function cambiarDia(idx: number) {
     setDiaIdx(idx);
     setSeleccion(null);
+    setArticulosSeleccionados(new Set());
   }
 
   function elegirHorario(cancha: CanchaDto, hora: string) {
     setSeleccion({ canchaId: cancha.id, canchaNombre: cancha.nombre, hora, precioHora: cancha.precioHora });
+  }
+
+  function toggleArticulo(id: number) {
+    setArticulosSeleccionados((prev) => {
+      const siguiente = new Set(prev);
+      if (siguiente.has(id)) siguiente.delete(id);
+      else siguiente.add(id);
+      return siguiente;
+    });
   }
 
   async function confirmarReserva() {
@@ -133,16 +161,23 @@ function ReservarPage() {
         fecha: aFechaISO(diaActual.fecha),
         horaEntrada: conSegundos(seleccion.hora),
         horaSalida: conSegundos(sumarHora(seleccion.hora)),
-        articulos: [],
+        articulos: Array.from(articulosSeleccionados).map((articuloId) => ({ articuloId, cantidad: 1 })),
       });
       setSeleccion(null);
+      setArticulosSeleccionados(new Set());
+      setMostrarConfirmacion(false);
       navigate(`/reservas/confirmacion/${reserva.id}`, { state: { reserva } });
     } catch (err) {
+      setMostrarConfirmacion(false);
       setError(mensajeError(err, "No se pudo confirmar la reserva. Intenta de nuevo."));
     } finally {
       setConfirmando(false);
     }
   }
+
+  const articulosElegidos = articulos.filter((a) => articulosSeleccionados.has(a.id));
+  const totalArticulos = articulosElegidos.reduce((suma, a) => suma + a.precio, 0);
+  const totalReserva = seleccion ? seleccion.precioHora + totalArticulos : 0;
 
   return (
     <main className="mx-auto flex max-w-[1120px] flex-col gap-7 px-7 pb-20 pt-9">
@@ -237,18 +272,44 @@ function ReservarPage() {
                 <Fila label="Cancha" valor={seleccion.canchaNombre} />
                 <Fila label="Día" valor={diaActual.label} />
                 <Fila label="Horario" valor={`${seleccion.hora} – ${sumarHora(seleccion.hora)}`} />
+                {articulosElegidos.length > 0 && (
+                  <Fila label="Artículos" valor={articulosElegidos.map((a) => a.nombre).join(", ")} />
+                )}
                 <div className="my-0.5 h-px bg-line" />
                 <div className="flex justify-between gap-2.5">
                   <span className="text-[13px] text-ink-faint">Total</span>
-                  <span className="text-[15px] font-semibold">{formatoMoneda(seleccion.precioHora)}</span>
+                  <span className="text-[15px] font-semibold">{formatoMoneda(totalReserva)}</span>
                 </div>
               </div>
+
+              {articulos.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <span className="text-[13px] font-medium text-ink-secondary">Artículos adicionales</span>
+                  {articulos.map((a) => (
+                    <label
+                      key={a.id}
+                      className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-line-strong bg-page px-3 py-2 text-[13px] hover:border-line-hover"
+                    >
+                      <span className="flex items-center gap-2 text-ink-secondary">
+                        <input
+                          type="checkbox"
+                          checked={articulosSeleccionados.has(a.id)}
+                          onChange={() => toggleArticulo(a.id)}
+                          className="h-3.5 w-3.5 accent-brand"
+                        />
+                        {a.nombre}
+                      </span>
+                      <span className="text-ink-muted">{formatoMoneda(a.precio)}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+
               <button
-                onClick={confirmarReserva}
-                disabled={confirmando}
-                className="h-[42px] rounded-[9px] border-none bg-brand text-sm font-semibold text-brand-foreground hover:bg-brand-hover disabled:opacity-60"
+                onClick={() => setMostrarConfirmacion(true)}
+                className="h-[42px] rounded-[9px] border-none bg-brand text-sm font-semibold text-brand-foreground hover:bg-brand-hover"
               >
-                {confirmando ? "Confirmando..." : "Confirmar reserva"}
+                Confirmar reserva
               </button>
             </div>
           ) : (
@@ -263,6 +324,44 @@ function ReservarPage() {
           )}
         </div>
       </div>
+
+      {mostrarConfirmacion && seleccion && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-6">
+            <h2 className="mb-2 text-base font-semibold">¿Confirmar tu reserva?</h2>
+            <p className="mb-4 text-sm text-ink-muted">Revisa los datos antes de confirmar — esta acción no se puede deshacer.</p>
+            <div className="flex flex-col gap-2.5 rounded-[10px] border border-line bg-page p-3.5">
+              <Fila label="Cancha" valor={seleccion.canchaNombre} />
+              <Fila label="Día" valor={diaActual.label} />
+              <Fila label="Horario" valor={`${seleccion.hora} – ${sumarHora(seleccion.hora)}`} />
+              {articulosElegidos.length > 0 && (
+                <Fila label="Artículos" valor={articulosElegidos.map((a) => a.nombre).join(", ")} />
+              )}
+              <div className="my-0.5 h-px bg-line" />
+              <div className="flex justify-between gap-2.5">
+                <span className="text-[13px] text-ink-faint">Total</span>
+                <span className="text-[15px] font-semibold">{formatoMoneda(totalReserva)}</span>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setMostrarConfirmacion(false)}
+                disabled={confirmando}
+                className="h-9 rounded-lg border border-line-strong bg-transparent px-4 text-[13px] font-medium text-ink-secondary hover:bg-hover-strong disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarReserva}
+                disabled={confirmando}
+                className="h-9 rounded-lg border-none bg-brand px-4 text-[13px] font-semibold text-brand-foreground hover:bg-brand-hover disabled:opacity-60"
+              >
+                {confirmando ? "Confirmando..." : "Sí, confirmar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
