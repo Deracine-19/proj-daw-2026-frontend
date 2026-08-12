@@ -11,10 +11,9 @@ const NAV_GROUPS = [
     label: "General",
     items: [
       { to: "/admin/canchas", label: "Canchas", roles: ["Administrador"] },
+        {to: "/admin/dashboard", label: "Panel de control", roles: ["Administrador"],},
       {
-        to: "/admin/reservas",
-        label: "Reservas",
-        roles: ["Administrador", "Operador"],
+        to: "/admin/reservas",label: "Reservas", roles: ["Administrador", "Operador"],
       },
     ],
   },

@@ -5,6 +5,7 @@ import AdminLayout from "./components/layout/AdminLayout";
 import CanchasPage from "./pages/admin/CanchasPage";
 import UsuariosPage from "./pages/admin/UsuariosPage";
 import ArticulosPage from "./pages/admin/ArticulosPage";
+import DashboardPage from "./pages/admin/DashboardPage";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
 import NoAutorizado from "@/pages/NoAutorizado";
@@ -21,7 +22,7 @@ import { useAuth } from "@/context/AuthContext";
 
 function AdminIndexRedirect() {
   const { user } = useAuth();
-  return <Navigate to={user?.rol === "Operador" ? "/admin/reservas" : "/admin/canchas"} replace />;
+  return <Navigate to={user?.rol === "Operador" ? "/admin/reservas" : "/admin/dashboard" } replace />;
 }
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
               <Route element={<AdminLayout />}>
                 <Route index path="/admin" element={<AdminIndexRedirect />} />
                 <Route path="/admin/reservas" element={<ReservasPage />} />
+                <Route path="/admin/dashboard" element={<DashboardPage />}/>
 
                 <Route
                   element={<ProtectedRoute allowedRoles={["Administrador"]} />}
