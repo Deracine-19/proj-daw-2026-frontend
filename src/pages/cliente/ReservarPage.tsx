@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { isAxiosError } from "axios";
+import { ImageOff, Shirt } from "lucide-react";
 import { obtenerCanchas } from "@/services/canchaService";
 import { obtenerArticulos } from "@/services/articuloService";
 import { obtenerDisponibilidad, crearReserva, type FranjaHoraria } from "@/services/reservaService";
@@ -77,6 +78,7 @@ interface Seleccion {
   canchaNombre: string;
   hora: string;
   precioHora: number;
+  cantidadJugadores: number;
 }
 
 function ReservarPage() {
@@ -92,6 +94,7 @@ function ReservarPage() {
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [error, setError] = useState("");
+  
 
   const diaActual = dias[diaIdx];
 
@@ -139,7 +142,13 @@ function ReservarPage() {
   }
 
   function elegirHorario(cancha: CanchaDto, hora: string) {
-    setSeleccion({ canchaId: cancha.id, canchaNombre: cancha.nombre, hora, precioHora: cancha.precioHora });
+    setSeleccion({
+      canchaId: cancha.id,
+      canchaNombre: cancha.nombre,
+      hora,
+      precioHora: cancha.precioHora,
+      cantidadJugadores: cancha.cantidadJugadores,
+    });
   }
 
   function toggleArticulo(id: number) {
@@ -225,8 +234,12 @@ function ReservarPage() {
               <div key={c.id} className="flex flex-col gap-4 rounded-[14px] border border-line bg-surface p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3.5">
-                    <div className="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center rounded-[11px] border border-line-strong bg-[repeating-linear-gradient(135deg,var(--color-hover)_0_6px,var(--color-surface-sunken)_6px_12px)]">
-                      <span className="font-mono text-[7px] text-ink-disabled">FOTO</span>
+                    <div className="flex h-[52px] w-[52px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[11px] border border-line-strong bg-[repeating-linear-gradient(135deg,var(--color-hover)_0_6px,var(--color-surface-sunken)_6px_12px)]">
+                      {c.imagenBase64 ? (
+                        <img src={c.imagenBase64} alt={c.nombre} className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="font-mono text-[7px] text-ink-disabled">FOTO</span>
+                      )}
                     </div>
                     <div className="flex flex-col gap-[5px]">
                       <span className="text-base font-semibold">{c.nombre}</span>
@@ -284,19 +297,26 @@ function ReservarPage() {
 
               {articulos.length > 0 && (
                 <div className="flex flex-col gap-2">
-                  <span className="text-[13px] font-medium text-ink-secondary">Artículos adicionales</span>
+                  <span className="text-[13px] font-medium text-ink-secondary">Alquiler de artículos adicionales</span>
                   {articulos.map((a) => (
                     <label
                       key={a.id}
                       className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-line-strong bg-page px-3 py-2 text-[13px] hover:border-line-hover"
                     >
-                      <span className="flex items-center gap-2 text-ink-secondary">
+                      <span className="flex items-center gap-2.5 text-ink-secondary">
                         <input
                           type="checkbox"
                           checked={articulosSeleccionados.has(a.id)}
                           onChange={() => toggleArticulo(a.id)}
                           className="h-3.5 w-3.5 accent-brand"
                         />
+                        <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center overflow-hidden rounded-[6px] border border-line-strong bg-surface">
+                          {a.imagenBase64 ? (
+                            <img src={a.imagenBase64} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <ImageOff className="h-3 w-3 text-ink-disabled" />
+                          )}
+                        </div>
                         {a.nombre}
                       </span>
                       <span className="text-ink-muted">{formatoMoneda(a.precio)}</span>
@@ -304,6 +324,12 @@ function ReservarPage() {
                   ))}
                 </div>
               )}
+
+              <p className="flex items-start gap-1.5 text-[12px] leading-relaxed text-ink-faint">
+                <Shirt className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-ink-disabled" />
+                Se entregan {seleccion.cantidadJugadores} chalecos de cada color, según la cantidad de jugadores de{" "}
+                {seleccion.canchaNombre}.
+              </p>
 
               <button
                 onClick={() => setMostrarConfirmacion(true)}

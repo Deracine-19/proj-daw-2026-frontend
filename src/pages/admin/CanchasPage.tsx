@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
+import { ImageOff } from "lucide-react";
 import {
-  obtenerCanchas,
+  obtenerCanchasPaginadas,
   crearCancha,
   actualizarCancha,
   cambiarEstadoCancha,
 } from "@/services/canchaService";
 import type { CanchaDto } from "@/types/cancha";
+import Paginador from "@/components/Paginador";
+import CampoImagen from "@/components/CampoImagen";
 
 function mensajeError(err: unknown, fallback: string): string {
   if (isAxiosError(err) && typeof err.response?.data?.mensaje === "string") {
@@ -20,22 +23,15 @@ function formatoMoneda(n: number) {
   return "L " + n.toLocaleString("en-US");
 }
 
-const FORM_VACIO = { nombre: "", descripcion: "", precioHora: 0, cantidadJugadores: 0 };
+const FORM_VACIO: {
+  nombre: string;
+  descripcion: string;
+  precioHora: number;
+  cantidadJugadores: number;
+  imagenBase64: string | null;
+} = { nombre: "", descripcion: "", precioHora: 0, cantidadJugadores: 0, imagenBase64: null };
 
 type ColumnaOrdenable = "nombre" | "cantidadJugadores" | "precioHora" | "estado";
-
-function compararValores(a: CanchaDto, b: CanchaDto, columna: ColumnaOrdenable): number {
-  switch (columna) {
-    case "nombre":
-      return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
-    case "estado":
-      return Number(a.estado) - Number(b.estado);
-    case "cantidadJugadores":
-      return a.cantidadJugadores - b.cantidadJugadores;
-    case "precioHora":
-      return a.precioHora - b.precioHora;
-  }
-}
 
 function EncabezadoOrdenable({
   label,
@@ -69,8 +65,15 @@ function CanchasPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
 
+  const [busqueda, setBusqueda] = useState("");
+  const [busquedaDebounced, setBusquedaDebounced] = useState("");
   const [ordenColumna, setOrdenColumna] = useState<ColumnaOrdenable | null>(null);
   const [ordenDireccion, setOrdenDireccion] = useState<"asc" | "desc">("asc");
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const [editando, setEditando] = useState<CanchaDto | null>(null);
   const [form, setForm] = useState(FORM_VACIO);
@@ -82,15 +85,34 @@ function CanchasPage() {
   const [formNuevaError, setFormNuevaError] = useState("");
   const [creandoGuardando, setCreandoGuardando] = useState(false);
 
+  // Debounce de la búsqueda — evita mandar una consulta al backend por cada letra tecleada.
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setBusquedaDebounced(busqueda);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [busqueda]);
+
   useEffect(() => {
     cargar();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, busquedaDebounced, ordenColumna, ordenDireccion]);
 
   async function cargar() {
     setCargando(true);
     setError("");
     try {
-      setCanchas(await obtenerCanchas());
+      const resultado = await obtenerCanchasPaginadas({
+        page,
+        pageSize,
+        busqueda: busquedaDebounced || undefined,
+        ordenarPor: ordenColumna ?? undefined,
+        ordenDireccion,
+      });
+      setCanchas(resultado.items);
+      setTotalCount(resultado.totalCount);
+      setTotalPages(resultado.totalPages);
     } catch {
       setError("No se pudo cargar la lista de canchas.");
     } finally {
@@ -105,6 +127,12 @@ function CanchasPage() {
       setOrdenColumna(columna);
       setOrdenDireccion("asc");
     }
+    setPage(1);
+  }
+
+  function cambiarPageSize(nuevo: number) {
+    setPageSize(nuevo);
+    setPage(1);
   }
 
   function abrirEdicion(c: CanchaDto) {
@@ -115,6 +143,7 @@ function CanchasPage() {
       descripcion: c.descripcion,
       precioHora: c.precioHora,
       cantidadJugadores: c.cantidadJugadores,
+      imagenBase64: c.imagenBase64,
     });
   }
 
@@ -123,9 +152,9 @@ function CanchasPage() {
     setGuardando(true);
     setFormError("");
     try {
-      const actualizado = await actualizarCancha(editando.id, { ...form, estado: editando.estado });
-      setCanchas((prev) => prev.map((c) => (c.id === actualizado.id ? actualizado : c)));
+      await actualizarCancha(editando.id, { ...form, estado: editando.estado });
       setEditando(null);
+      await cargar();
     } catch (err) {
       setFormError(mensajeError(err, "No se pudo guardar el cambio."));
     } finally {
@@ -137,10 +166,10 @@ function CanchasPage() {
     setCreandoGuardando(true);
     setFormNuevaError("");
     try {
-      const nueva = await crearCancha({ ...formNueva, estado: true });
-      setCanchas((prev) => [...prev, nueva]);
+      await crearCancha({ ...formNueva, estado: true });
       setCreando(false);
       setFormNueva(FORM_VACIO);
+      await cargar();
     } catch (err) {
       setFormNuevaError(mensajeError(err, "No se pudo crear la cancha."));
     } finally {
@@ -161,16 +190,8 @@ function CanchasPage() {
     }
   }
 
-  const canchasOrdenadas = ordenColumna
-    ? [...canchas].sort((a, b) => {
-        const resultado = compararValores(a, b, ordenColumna);
-        return ordenDireccion === "asc" ? resultado : -resultado;
-      })
-    : canchas;
-
-  const activasCount = canchas.filter((c) => c.estado).length;
   const stats = [
-    { label: "Canchas activas", value: `${activasCount} / ${canchas.length}`, delta: "En operación" },
+    { label: "Canchas registradas", value: String(totalCount), delta: "En este filtro" },
     { label: "Reservas hoy", value: "—", delta: "Pendiente de conectar" },
     { label: "Ingresos hoy", value: "—", delta: "Pendiente de conectar" },
     { label: "Ocupación", value: "—", delta: "Pendiente de conectar" },
@@ -180,15 +201,26 @@ function CanchasPage() {
     <>
       <header className="sticky top-0 z-10 flex h-[60px] items-center justify-between gap-4 border-b border-line bg-page/80 px-7 backdrop-blur-md">
         <span className="text-base font-semibold tracking-[-0.01em]">Gestión de canchas</span>
-        <button
-          onClick={() => {
-            setFormNuevaError("");
-            setCreando(true);
-          }}
-          className="h-[34px] rounded-lg border-none bg-brand px-3.5 text-[13px] font-semibold text-brand-foreground hover:bg-brand-hover"
-        >
-          + Nueva cancha
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex h-[34px] min-w-[200px] items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 text-[13px] text-ink-disabled">
+            <span className="font-mono">⌕</span>
+            <input
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar cancha..."
+              className="w-full bg-transparent text-ink outline-none placeholder:text-ink-disabled"
+            />
+          </div>
+          <button
+            onClick={() => {
+              setFormNuevaError("");
+              setCreando(true);
+            }}
+            className="h-[34px] rounded-lg border-none bg-brand px-3.5 text-[13px] font-semibold text-brand-foreground hover:bg-brand-hover"
+          >
+            + Nueva cancha
+          </button>
+        </div>
       </header>
 
       <main className="flex flex-1 flex-col gap-6 p-7">
@@ -207,10 +239,11 @@ function CanchasPage() {
         <div className="overflow-hidden rounded-[14px] border border-line bg-surface">
           <div className="flex items-center justify-between border-b border-line px-5 py-4">
             <span className="text-[15px] font-semibold">Canchas</span>
-            <span className="text-[13px] text-ink-faint">{canchasOrdenadas.length} canchas registradas</span>
+            <span className="text-[13px] text-ink-faint">{totalCount} canchas registradas</span>
           </div>
 
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] items-center gap-4 border-b border-line bg-surface-raised px-5 py-3">
+          <div className="grid grid-cols-[44px_2fr_1fr_1fr_1fr_1fr_auto] items-center gap-4 border-b border-line bg-surface-raised px-5 py-3">
+            <span />
             <EncabezadoOrdenable label="Cancha" columna="nombre" ordenColumna={ordenColumna} ordenDireccion={ordenDireccion} onClick={cambiarOrden} />
             <EncabezadoOrdenable label="Jugadores" columna="cantidadJugadores" ordenColumna={ordenColumna} ordenDireccion={ordenDireccion} onClick={cambiarOrden} />
             <EncabezadoOrdenable label="Precio/h" columna="precioHora" ordenColumna={ordenColumna} ordenDireccion={ordenDireccion} onClick={cambiarOrden} />
@@ -221,12 +254,21 @@ function CanchasPage() {
 
           {cargando ? (
             <div className="px-5 py-6 text-sm text-ink-faint">Cargando canchas...</div>
+          ) : canchas.length === 0 ? (
+            <div className="px-5 py-6 text-sm text-ink-faint">No hay canchas que coincidan con la búsqueda.</div>
           ) : (
-            canchasOrdenadas.map((c) => (
+            canchas.map((c) => (
               <div
                 key={c.id}
-                className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] items-center gap-4 border-b border-line-subtle px-5 py-3.5 transition-colors hover:bg-surface-sunken"
+                className="grid grid-cols-[44px_2fr_1fr_1fr_1fr_1fr_auto] items-center gap-4 border-b border-line-subtle px-5 py-3.5 transition-colors hover:bg-surface-sunken"
               >
+                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[8px] border border-line-strong bg-panel">
+                  {c.imagenBase64 ? (
+                    <img src={c.imagenBase64} alt={c.nombre} className="h-full w-full object-cover" />
+                  ) : (
+                    <ImageOff className="h-4 w-4 text-ink-disabled" />
+                  )}
+                </div>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{c.nombre}</span>
                   <span className="text-xs text-ink-faint">{c.descripcion}</span>
@@ -263,6 +305,15 @@ function CanchasPage() {
               </div>
             ))
           )}
+
+          <Paginador
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            onPageSizeChange={cambiarPageSize}
+          />
         </div>
       </main>
 
@@ -271,6 +322,7 @@ function CanchasPage() {
           <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-6">
             <h2 className="mb-4 text-base font-semibold">Editar cancha</h2>
             <div className="flex flex-col gap-4">
+              <CampoImagen value={form.imagenBase64} onChange={(v) => setForm({ ...form, imagenBase64: v })} />
               <Campo label="Nombre" value={form.nombre} onChange={(v) => setForm({ ...form, nombre: v })} />
               <Campo label="Descripción" value={form.descripcion} onChange={(v) => setForm({ ...form, descripcion: v })} />
               <CampoNumero label="Precio por hora" value={form.precioHora} onChange={(v) => setForm({ ...form, precioHora: v })} sinContador />
@@ -294,6 +346,7 @@ function CanchasPage() {
           <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-6">
             <h2 className="mb-4 text-base font-semibold">Nueva cancha</h2>
             <div className="flex flex-col gap-4">
+              <CampoImagen value={formNueva.imagenBase64} onChange={(v) => setFormNueva({ ...formNueva, imagenBase64: v })} />
               <Campo label="Nombre" value={formNueva.nombre} onChange={(v) => setFormNueva({ ...formNueva, nombre: v })} />
               <Campo label="Descripción" value={formNueva.descripcion} onChange={(v) => setFormNueva({ ...formNueva, descripcion: v })} />
               <CampoNumero label="Precio por hora" value={formNueva.precioHora} onChange={(v) => setFormNueva({ ...formNueva, precioHora: v })} sinContador />

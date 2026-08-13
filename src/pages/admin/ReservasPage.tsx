@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
 import {
   obtenerReservas,
   cancelarReserva as apiCancelarReserva,
@@ -16,8 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import SelectorRangoFechas from "@/components/SelectorRangoFechas";
+import { calcularRango, type PresetRango, type RangoFechas } from "@/lib/rangoFechas";
+import Paginador from "@/components/Paginador";
 
 const ESTADO_COLOR: Record<string, string> = {
   CONFIRMADA: "var(--color-positive)",
@@ -32,30 +31,10 @@ function formatoEstado(estado: string): string {
 
 type ColumnaOrdenable = "nombreUsuario" | "nombreCancha" | "fecha" | "total" | "estadoReserva";
 
-function compararValores(a: ReservaDto, b: ReservaDto, columna: ColumnaOrdenable): number {
-  switch (columna) {
-    case "nombreUsuario":
-      return (a.nombreUsuario ?? "").localeCompare(b.nombreUsuario ?? "", "es", { sensitivity: "base" });
-    case "nombreCancha":
-      return (a.nombreCancha ?? "").localeCompare(b.nombreCancha ?? "", "es", { sensitivity: "base" });
-    case "fecha":
-      return a.fecha.localeCompare(b.fecha);
-    case "total":
-      return a.total - b.total;
-    case "estadoReserva":
-      return a.estadoReserva.localeCompare(b.estadoReserva, "es", { sensitivity: "base" });
-  }
-}
-
 function formatoFecha(fecha: string): string {
   const [anio, mes, dia] = fecha.split("-").map(Number);
   const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
   return `${dia} ${meses[mes - 1]} ${anio}`;
-}
-
-function parseFecha(fecha: string): Date {
-  const [anio, mes, dia] = fecha.split("-").map(Number);
-  return new Date(anio, mes - 1, dia);
 }
 
 function formatoHora(hora: string): string {
@@ -111,25 +90,53 @@ function ReservasPage() {
   const [error, setError] = useState("");
 
   const [busqueda, setBusqueda] = useState("");
+  const [busquedaDebounced, setBusquedaDebounced] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
-  const [filtroFecha, setFiltroFecha] = useState("");
+  const [rangoPreset, setRangoPreset] = useState<PresetRango>("hoy");
+  const [rango, setRango] = useState<RangoFechas>(() => calcularRango("hoy"));
 
   const [ordenColumna, setOrdenColumna] = useState<ColumnaOrdenable | null>(null);
   const [ordenDireccion, setOrdenDireccion] = useState<"asc" | "desc">("asc");
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const [accionConfirmar, setAccionConfirmar] = useState<AccionConfirmar | null>(null);
   const [procesandoAccion, setProcesandoAccion] = useState(false);
   const [procesandoPagoId, setProcesandoPagoId] = useState<number | null>(null);
 
   useEffect(() => {
+    const timeout = setTimeout(() => {
+      setBusquedaDebounced(busqueda);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [busqueda]);
+
+  useEffect(() => {
     cargar();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, busquedaDebounced, filtroEstado, rango, ordenColumna, ordenDireccion]);
 
   async function cargar() {
     setCargando(true);
     setError("");
     try {
-      setReservas(await obtenerReservas());
+      const resultado = await obtenerReservas({
+        page,
+        pageSize,
+        busqueda: busquedaDebounced || undefined,
+        ordenarPor: ordenColumna ?? undefined,
+        ordenDireccion,
+        fechaInicio: rango.desde,
+        fechaFin: rango.hasta,
+        estado: filtroEstado || undefined,
+      });
+      setReservas(resultado.items);
+      setTotalCount(resultado.totalCount);
+      setTotalPages(resultado.totalPages);
     } catch {
       setError("No se pudo cargar la lista de reservas.");
     } finally {
@@ -144,6 +151,23 @@ function ReservasPage() {
       setOrdenColumna(columna);
       setOrdenDireccion("asc");
     }
+    setPage(1);
+  }
+
+  function cambiarRango(preset: PresetRango, nuevoRango: RangoFechas) {
+    setRangoPreset(preset);
+    setRango(nuevoRango);
+    setPage(1);
+  }
+
+  function cambiarFiltroEstado(v: string) {
+    setFiltroEstado(v);
+    setPage(1);
+  }
+
+  function cambiarPageSize(nuevo: number) {
+    setPageSize(nuevo);
+    setPage(1);
   }
 
   async function marcarPagada(r: ReservaDto) {
@@ -151,8 +175,8 @@ function ReservasPage() {
     setError("");
     try {
       const actualizado = await apiMarcarComoPagada(r.id);
-      setReservas((prev) => prev.map((x) => (x.id === actualizado.id ? actualizado : x)));
       toast.success(`Reserva ${actualizado.codigoReserva} marcada como pagada`);
+      await cargar();
     } catch {
       setError("No se pudo marcar la reserva como pagada.");
       toast.error("No se pudo marcar la reserva como pagada.");
@@ -168,16 +192,13 @@ function ReservasPage() {
     try {
       if (accionConfirmar.tipo === "cancelar") {
         await apiCancelarReserva(accionConfirmar.reserva.id);
-        setReservas((prev) =>
-          prev.map((r) => (r.id === accionConfirmar.reserva.id ? { ...r, estadoReserva: "CANCELADA" } : r))
-        );
         toast.success(`Reserva ${accionConfirmar.reserva.codigoReserva} cancelada`);
       } else {
         const actualizado = await apiMarcarComoNoShow(accionConfirmar.reserva.id);
-        setReservas((prev) => prev.map((r) => (r.id === actualizado.id ? actualizado : r)));
         toast.success(`Reserva ${actualizado.codigoReserva} marcada como No-Show`);
       }
       setAccionConfirmar(null);
+      await cargar();
     } catch {
       setError(
         accionConfirmar.tipo === "cancelar" ? "No se pudo cancelar la reserva." : "No se pudo marcar como No-Show."
@@ -190,28 +211,11 @@ function ReservasPage() {
     }
   }
 
-  const reservasFiltradas = reservas.filter((r) => {
-    const coincideBusqueda =
-      (r.nombreUsuario ?? "").toLowerCase().includes(busqueda.toLowerCase()) ||
-      (r.nombreCancha ?? "").toLowerCase().includes(busqueda.toLowerCase()) ||
-      r.codigoReserva.toLowerCase().includes(busqueda.toLowerCase());
-    const coincideEstado = !filtroEstado || r.estadoReserva === filtroEstado;
-    const coincideFecha = !filtroFecha || r.fecha === filtroFecha;
-    return coincideBusqueda && coincideEstado && coincideFecha;
-  });
-
-  const reservasOrdenadas = ordenColumna
-    ? [...reservasFiltradas].sort((a, b) => {
-        const resultado = compararValores(a, b, ordenColumna);
-        return ordenDireccion === "asc" ? resultado : -resultado;
-      })
-    : reservasFiltradas;
-
   return (
     <>
-      <header className="sticky top-0 z-10 flex h-[60px] items-center justify-between gap-4 border-b border-line bg-page/80 px-7 backdrop-blur-md">
+      <header className="sticky top-0 z-10 flex min-h-[60px] flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-line bg-page/80 px-7 py-3 backdrop-blur-md">
         <span className="text-base font-semibold tracking-[-0.01em]">Gestión de reservas</span>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex h-[34px] min-w-[180px] items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 text-[13px] text-ink-disabled">
             <span className="font-mono">⌕</span>
             <input
@@ -221,32 +225,8 @@ function ReservasPage() {
               className="w-full bg-transparent text-ink outline-none placeholder:text-ink-disabled"
             />
           </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="flex h-[34px] items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 text-[13px] text-ink-secondary hover:bg-hover-strong">
-                <CalendarIcon className="h-3.5 w-3.5 text-ink-faint" />
-                {filtroFecha ? formatoFecha(filtroFecha) : "Todas las fechas"}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={filtroFecha ? parseFecha(filtroFecha) : undefined}
-                onSelect={(date) => setFiltroFecha(date ? format(date, "yyyy-MM-dd") : "")}
-              />
-              {filtroFecha && (
-                <div className="border-t border-line p-2">
-                  <button
-                    onClick={() => setFiltroFecha("")}
-                    className="w-full rounded-md px-2 py-1.5 text-left text-[13px] text-ink-muted hover:bg-hover-strong"
-                  >
-                    Limpiar fecha
-                  </button>
-                </div>
-              )}
-            </PopoverContent>
-          </Popover>
-          <Select value={filtroEstado || "todos"} onValueChange={(v) => setFiltroEstado(v === "todos" ? "" : v)}>
+          <SelectorRangoFechas preset={rangoPreset} rango={rango} onChange={cambiarRango} />
+          <Select value={filtroEstado || "todos"} onValueChange={(v) => cambiarFiltroEstado(v === "todos" ? "" : v)}>
             <SelectTrigger
               style={{ height: "34px" }}
               className="rounded-lg border-line-strong bg-surface px-3 text-[13px] text-ink-secondary"
@@ -269,7 +249,7 @@ function ReservasPage() {
         <div className="overflow-hidden rounded-[14px] border border-line bg-surface">
           <div className="flex items-center justify-between border-b border-line px-5 py-4">
             <span className="text-[15px] font-semibold">Reservas</span>
-            <span className="text-[13px] text-ink-faint">{reservasOrdenadas.length} reservas</span>
+            <span className="text-[13px] text-ink-faint">{totalCount} reservas</span>
           </div>
 
           <div className="grid grid-cols-[1.4fr_1.2fr_1.2fr_0.8fr_1fr_0.9fr_230px] items-center gap-3 border-b border-line bg-surface-raised px-5 py-3">
@@ -284,10 +264,10 @@ function ReservasPage() {
 
           {cargando ? (
             <div className="px-5 py-6 text-sm text-ink-faint">Cargando reservas...</div>
-          ) : reservasOrdenadas.length === 0 ? (
+          ) : reservas.length === 0 ? (
             <div className="px-5 py-6 text-sm text-ink-faint">No hay reservas que coincidan con los filtros.</div>
           ) : (
-            reservasOrdenadas.map((r) => {
+            reservas.map((r) => {
               const cancelada = r.estadoReserva === "CANCELADA";
               const noShow = r.estadoReserva === "NOSHOW";
               const cerrada = cancelada || noShow;
@@ -358,6 +338,15 @@ function ReservasPage() {
               );
             })
           )}
+
+          <Paginador
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            onPageSizeChange={cambiarPageSize}
+          />
         </div>
       </main>
 

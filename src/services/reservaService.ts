@@ -1,4 +1,5 @@
 import api from "./api";
+import type { PagedResultDto, ParametrosPaginacion } from "@/types/paginacion";
 
 export interface ReservaArticuloDto {
   articuloId: number;
@@ -24,8 +25,12 @@ export interface ReservaDto {
   articulos: ReservaArticuloDto[];
 }
 
-export async function obtenerReservas(): Promise<ReservaDto[]> {
-  const { data } = await api.get<ReservaDto[]>("/reserva");
+// Solo para el panel de administrador — paginado, con búsqueda/orden y rango de fechas.
+// Sin fechaInicio/fechaFin, el backend responde solo con las reservas de HOY.
+export async function obtenerReservas(
+  params: ParametrosPaginacion & { fechaInicio?: string; fechaFin?: string; estado?: string }
+): Promise<PagedResultDto<ReservaDto>> {
+  const { data } = await api.get<PagedResultDto<ReservaDto>>("/reserva", { params });
   return data;
 }
 
