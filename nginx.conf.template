@@ -1,0 +1,26 @@
+server {
+    listen ${PORT};
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+
+    # SPA: cualquier ruta que no sea un archivo real (ej. /admin/canchas al recargar la
+    # página) debe resolver a index.html — React Router decide qué mostrar del lado cliente.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # index.html sí debe revalidarse siempre; los assets con hash en el nombre (JS/CSS de la
+    # build de Vite) pueden cachearse agresivo porque un cambio de contenido cambia el nombre.
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+}
