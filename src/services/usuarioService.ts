@@ -1,8 +1,11 @@
 import api from "./api";
 import type { UsuarioDto, UsuarioUpdateDto, UsuarioCreateDto } from "@/types/usuario";
+import type { PagedResultDto, ParametrosPaginacion } from "@/types/paginacion";
 
-export async function obtenerUsuarios(): Promise<UsuarioDto[]> {
-  const { data } = await api.get<UsuarioDto[]>("/usuarios");
+export async function obtenerUsuarios(
+  params: ParametrosPaginacion & { rol?: string; activo?: boolean }
+): Promise<PagedResultDto<UsuarioDto>> {
+  const { data } = await api.get<PagedResultDto<UsuarioDto>>("/usuarios", { params });
   return data;
 }
 
@@ -23,5 +26,16 @@ export async function crearUsuario(dto: UsuarioCreateDto): Promise<UsuarioDto> {
 
 export async function cambiarEstadoUsuario(id: number): Promise<UsuarioDto> {
   const { data } = await api.patch<UsuarioDto>(`/usuarios/${id}/estado`);
+  return data;
+}
+
+// Perfil propio del usuario autenticado (cualquier rol) — el JWT no trae nombre ni foto.
+export async function obtenerMiPerfil(): Promise<UsuarioDto> {
+  const { data } = await api.get<UsuarioDto>("/usuarios/perfil");
+  return data;
+}
+
+export async function actualizarMiFoto(imagenBase64: string | null): Promise<UsuarioDto> {
+  const { data } = await api.patch<UsuarioDto>("/usuarios/perfil/foto", { imagenBase64 });
   return data;
 }

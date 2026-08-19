@@ -1,4 +1,4 @@
-import { PROYECTO_NOMBRE } from "@/config/app";
+import { useConfiguracion } from "@/context/ConfiguracionContext";
 import logo from "@/assets/logo.svg";
 
 interface EnConstruccionProps {
@@ -6,6 +6,7 @@ interface EnConstruccionProps {
 }
 
 function EnConstruccion({ titulo }: EnConstruccionProps) {
+  const { nombreNegocio } = useConfiguracion();
   return (
     <>
       <header className="sticky top-0 z-10 flex h-15 items-center border-b border-line bg-page/80 px-7 backdrop-blur-md">
@@ -13,7 +14,7 @@ function EnConstruccion({ titulo }: EnConstruccionProps) {
       </header>
 
       <main className="flex flex-1 flex-col items-center justify-center gap-3 p-7 text-center">
-        <img src={logo} alt={PROYECTO_NOMBRE} className="h-11 w-auto opacity-70" />
+        <img src={logo} alt={nombreNegocio} className="h-11 w-auto opacity-70" />
         <p className="m-0 text-sm font-medium text-ink-secondary">Esta sección está en construcción</p>
         <p className="m-0 max-w-xs text-[13px] text-ink-faint">
           Esta sección aún no está disponible. Vuelve pronto.

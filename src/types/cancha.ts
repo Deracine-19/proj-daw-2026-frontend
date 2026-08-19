@@ -5,6 +5,7 @@ export interface CanchaDto {
   precioHora: number;
   estado: boolean;
   cantidadJugadores: number;
+  imagenBase64: string | null;
 }
 
 export interface CanchaCreateDto {
@@ -13,6 +14,7 @@ export interface CanchaCreateDto {
   precioHora: number;
   estado: boolean;
   cantidadJugadores: number;
+  imagenBase64: string | null;
 }
 
 export interface CanchaUpdateDto extends CanchaCreateDto {}

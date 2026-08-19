@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { obtenerMisReservas, type ReservaDto } from "@/services/reservaService";
+import BotonExportar from "@/components/BotonExportar";
 
 const ESTADO_COLOR: Record<string, string> = {
   CONFIRMADA: "var(--color-positive)",
@@ -61,9 +62,12 @@ function MisReservasPage() {
 
   return (
     <main className="mx-auto flex max-w-[1120px] flex-col gap-7 px-7 pb-20 pt-9">
-      <div className="flex flex-col gap-1.5">
-        <h1 className="m-0 text-[28px] font-semibold tracking-[-0.02em]">Mis reservas</h1>
-        <p className="m-0 text-[15px] text-ink-muted">Historial de tus reservaciones y su estado actual.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="m-0 text-[28px] font-semibold tracking-[-0.02em]">Mis reservas</h1>
+          <p className="m-0 text-[15px] text-ink-muted">Historial de tus reservaciones y su estado actual.</p>
+        </div>
+        {reservas.length > 0 && <BotonExportar url="/reportes/exportar/mis-reservas" nombreDato="mis-reservas" />}
       </div>
 
       {error && <p className="text-sm text-negative">{error}</p>}

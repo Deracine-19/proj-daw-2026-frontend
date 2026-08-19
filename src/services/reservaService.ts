@@ -1,4 +1,5 @@
 import api from "./api";
+import type { PagedResultDto, ParametrosPaginacion } from "@/types/paginacion";
 
 export interface ReservaArticuloDto {
   articuloId: number;
@@ -24,8 +25,12 @@ export interface ReservaDto {
   articulos: ReservaArticuloDto[];
 }
 
-export async function obtenerReservas(): Promise<ReservaDto[]> {
-  const { data } = await api.get<ReservaDto[]>("/reserva");
+// Solo para el panel de administrador — paginado, con búsqueda/orden y rango de fechas.
+// Sin fechaInicio/fechaFin, el backend responde solo con las reservas de HOY.
+export async function obtenerReservas(
+  params: ParametrosPaginacion & { fechaInicio?: string; fechaFin?: string; estado?: string }
+): Promise<PagedResultDto<ReservaDto>> {
+  const { data } = await api.get<PagedResultDto<ReservaDto>>("/reserva", { params });
   return data;
 }
 
@@ -86,14 +91,15 @@ interface HorarioOcupadoDto {
 // Franjas fijas de 1 hora que ofrecemos para reservar. El backend no tiene noción
 // de "slots" (las reservas son de horario libre), así que esta grilla es una
 // decisión de producto del frontend, no algo que venga del servidor — pero el
-// rango (8:00 a 22:00) debe coincidir con HorarioNegocioConstantes en el backend,
-// que es quien realmente lo valida al crear la reserva.
-const HORA_APERTURA = 8;
-const HORA_CIERRE = 22;
-
-const HORAS_DEL_DIA = Array.from({ length: HORA_CIERRE - HORA_APERTURA }, (_, i) =>
-  String(HORA_APERTURA + i).padStart(2, "0") + ":00"
-);
+// rango de horas debe coincidir con la Configuracion del backend (horaApertura/
+// horaCierre), que es quien realmente lo valida al crear la reserva. Por eso
+// horaApertura/horaCierre se reciben como parámetro (vía useConfiguracion en el
+// llamador) en vez de estar hardcodeados acá.
+function generarHorasDelDia(horaApertura: number, horaCierre: number): string[] {
+  return Array.from({ length: horaCierre - horaApertura }, (_, i) =>
+    String(horaApertura + i).padStart(2, "0") + ":00"
+  );
+}
 
 function sumarHora(hora: string): string {
   const h = parseInt(hora.split(":")[0], 10) + 1;
@@ -115,12 +121,14 @@ function seTraslapan(aInicio: string, aFin: string, bInicio: string, bFin: strin
   return aInicio < bFin && aFin > bInicio;
 }
 
-export async function obtenerDisponibilidad(canchaId: number, fecha: Date): Promise<FranjaHoraria[]> {
+export async function obtenerDisponibilidad(
+  canchaId: number, fecha: Date, horaApertura: number, horaCierre: number
+): Promise<FranjaHoraria[]> {
   const { data: ocupados } = await api.get<HorarioOcupadoDto[]>("/reserva/disponibilidad", {
     params: { canchaId, fecha: aFechaISO(fecha) },
   });
 
-  return HORAS_DEL_DIA.map((hora) => {
+  return generarHorasDelDia(horaApertura, horaCierre).map((hora) => {
     const inicio = `${hora}:00`;
     const fin = `${sumarHora(hora)}:00`;
     const disponible = !ocupados.some((o) => seTraslapan(inicio, fin, o.horaEntrada, o.horaSalida));

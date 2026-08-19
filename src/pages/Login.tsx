@@ -1,12 +1,24 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { register as registerService } from "@/services/authService";
+import {
+  register as registerService,
+  forgotPassword as forgotPasswordService,
+  resetPassword as resetPasswordService,
+} from "@/services/authService";
 import { isAxiosError } from "axios";
-import { PROYECTO_NOMBRE } from "@/config/app";
+import { useConfiguracion } from "@/context/ConfiguracionContext";
 import logo from "@/assets/logo.svg";
 
 type Tab = "login" | "register";
+type PasoOlvide = "solicitar" | "restablecer" | "listo";
+
+function mensajeErrorAuth(err: unknown, fallback: string): string {
+  if (isAxiosError(err) && typeof err.response?.data?.mensaje === "string") {
+    return err.response.data.mensaje;
+  }
+  return fallback;
+}
 
 function Login() {
   const [tab, setTab] = useState<Tab>("login");
@@ -17,7 +29,17 @@ function Login() {
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
 
+  const [mostrarOlvide, setMostrarOlvide] = useState(false);
+  const [pasoOlvide, setPasoOlvide] = useState<PasoOlvide>("solicitar");
+  const [emailOlvide, setEmailOlvide] = useState("");
+  const [tempPassword, setTempPassword] = useState("");
+  const [nuevaPassword, setNuevaPassword] = useState("");
+  const [mensajeOlvide, setMensajeOlvide] = useState("");
+  const [errorOlvide, setErrorOlvide] = useState("");
+  const [cargandoOlvide, setCargandoOlvide] = useState(false);
+
   const { login, user } = useAuth();
+  const { nombreNegocio } = useConfiguracion();
   const navigate = useNavigate();
   const isReg = tab === "register";
 
@@ -25,6 +47,47 @@ function Login() {
     if (rol === "Administrador") navigate("/admin/canchas");
     else if (rol === "Operador") navigate("/admin/reservas");
     else navigate("/reservas");
+  }
+
+  function abrirOlvide() {
+    setMostrarOlvide(true);
+    setPasoOlvide("solicitar");
+    setEmailOlvide(email);
+    setTempPassword("");
+    setNuevaPassword("");
+    setMensajeOlvide("");
+    setErrorOlvide("");
+  }
+
+  async function solicitarClaveTemporal(e: FormEvent) {
+    e.preventDefault();
+    setCargandoOlvide(true);
+    setErrorOlvide("");
+    try {
+      await forgotPasswordService({ email: emailOlvide });
+      setMensajeOlvide("Si el correo existe en nuestro sistema, te enviamos una clave temporal. Ingrésala abajo junto con tu nueva contraseña.");
+      setPasoOlvide("restablecer");
+    } catch (err) {
+      setErrorOlvide(mensajeErrorAuth(err, "No se pudo procesar la solicitud. Intenta de nuevo."));
+    } finally {
+      setCargandoOlvide(false);
+    }
+  }
+
+  async function restablecerPassword(e: FormEvent) {
+    e.preventDefault();
+    setCargandoOlvide(true);
+    setErrorOlvide("");
+    try {
+      await resetPasswordService({ email: emailOlvide, tempPassword, newPassword: nuevaPassword });
+      setEmail(emailOlvide);
+      setPassword("");
+      setPasoOlvide("listo");
+    } catch (err) {
+      setErrorOlvide(mensajeErrorAuth(err, "No se pudo restablecer la contraseña. Verifica la clave temporal."));
+    } finally {
+      setCargandoOlvide(false);
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -58,7 +121,7 @@ function Login() {
 
       <div className="flex w-full max-w-[360px] flex-col gap-6">
         <div className="flex flex-col items-center gap-[18px]">
-          <img src={logo} alt={PROYECTO_NOMBRE} className="h-11 w-auto" />
+          <img src={logo} alt={nombreNegocio} className="h-11 w-auto" />
           <div className="flex flex-col items-center gap-1.5">
             <h1 className="m-0 text-center text-2xl font-semibold tracking-[-0.02em] text-ink">
               {isReg ? "Crea tu cuenta" : "Bienvenido de vuelta"}
@@ -137,9 +200,13 @@ function Login() {
               </button>
             </div>
             {!isReg && (
-              <a href="#" className="self-end text-[13px] text-ink-muted no-underline hover:text-ink">
+              <button
+                type="button"
+                onClick={abrirOlvide}
+                className="self-end text-[13px] text-ink-muted no-underline hover:text-ink"
+              >
                 ¿Olvidaste tu contraseña?
-              </a>
+              </button>
             )}
           </div>
 
@@ -158,6 +225,117 @@ function Login() {
           Al continuar aceptas nuestros Términos y Política de privacidad.
         </p>
       </div>
+
+      {mostrarOlvide && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-6">
+            {pasoOlvide === "listo" ? (
+              <>
+                <h2 className="mb-2 text-base font-semibold">¡Contraseña actualizada!</h2>
+                <p className="mb-5 text-sm text-ink-muted">Ya puedes iniciar sesión con tu nueva contraseña.</p>
+                <button
+                  onClick={() => setMostrarOlvide(false)}
+                  className="h-9 w-full rounded-lg border-none bg-brand text-[13px] font-semibold text-brand-foreground hover:bg-brand-hover"
+                >
+                  Iniciar sesión
+                </button>
+              </>
+            ) : pasoOlvide === "restablecer" ? (
+              <form onSubmit={restablecerPassword} className="flex flex-col gap-4">
+                <div>
+                  <h2 className="mb-1 text-base font-semibold">Restablecer contraseña</h2>
+                  <p className="text-sm text-ink-muted">{mensajeOlvide}</p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[13px] font-medium text-ink-secondary">Clave temporal</label>
+                  <input
+                    value={tempPassword}
+                    onChange={(e) => setTempPassword(e.target.value)}
+                    required
+                    placeholder="La que te llegó por correo"
+                    className="h-10.5 rounded-[9px] border border-line-strong bg-panel px-3 text-sm text-ink outline-none focus:border-ink-disabled"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[13px] font-medium text-ink-secondary">Nueva contraseña</label>
+                  <input
+                    type="password"
+                    value={nuevaPassword}
+                    onChange={(e) => setNuevaPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    placeholder="Mínimo 6 caracteres"
+                    className="h-10.5 rounded-[9px] border border-line-strong bg-panel px-3 text-sm text-ink outline-none focus:border-ink-disabled"
+                  />
+                </div>
+                {errorOlvide && <p className="text-sm text-negative">{errorOlvide}</p>}
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPasoOlvide("solicitar")}
+                    disabled={cargandoOlvide}
+                    className="h-9 rounded-lg border border-line-strong bg-transparent px-4 text-[13px] font-medium text-ink-secondary hover:bg-hover-strong disabled:opacity-60"
+                  >
+                    Volver
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={cargandoOlvide}
+                    className="h-9 rounded-lg border-none bg-brand px-4 text-[13px] font-semibold text-brand-foreground hover:bg-brand-hover disabled:opacity-60"
+                  >
+                    {cargandoOlvide ? "Guardando..." : "Restablecer"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={solicitarClaveTemporal} className="flex flex-col gap-4">
+                <div>
+                  <h2 className="mb-1 text-base font-semibold">¿Olvidaste tu contraseña?</h2>
+                  <p className="text-sm text-ink-muted">Te enviaremos una clave temporal a tu correo.</p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[13px] font-medium text-ink-secondary">Correo electrónico</label>
+                  <input
+                    type="email"
+                    value={emailOlvide}
+                    onChange={(e) => setEmailOlvide(e.target.value)}
+                    required
+                    className="h-10.5 rounded-[9px] border border-line-strong bg-panel px-3 text-sm text-ink outline-none focus:border-ink-disabled"
+                  />
+                </div>
+                {errorOlvide && <p className="text-sm text-negative">{errorOlvide}</p>}
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMostrarOlvide(false)}
+                    disabled={cargandoOlvide}
+                    className="h-9 rounded-lg border border-line-strong bg-transparent px-4 text-[13px] font-medium text-ink-secondary hover:bg-hover-strong disabled:opacity-60"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={cargandoOlvide}
+                    className="h-9 rounded-lg border-none bg-brand px-4 text-[13px] font-semibold text-brand-foreground hover:bg-brand-hover disabled:opacity-60"
+                  >
+                    {cargandoOlvide ? "Enviando..." : "Enviar clave temporal"}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setErrorOlvide("");
+                    setPasoOlvide("restablecer");
+                  }}
+                  className="text-center text-[13px] text-ink-muted hover:text-ink"
+                >
+                  Ya tengo una clave temporal
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

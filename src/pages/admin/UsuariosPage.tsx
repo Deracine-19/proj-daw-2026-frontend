@@ -15,6 +15,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Paginador from "@/components/Paginador";
+import BotonExportar from "@/components/BotonExportar";
+import Avatar from "@/components/Avatar";
+import CampoImagen from "@/components/CampoImagen";
 
 const ROL_COLOR: Record<string, string> = {
   Administrador: "var(--color-brand)",
@@ -32,13 +36,6 @@ type ColumnaOrdenable = "nombre" | "email" | "rolNombre" | "activo";
 
 function iniciales(nombre: string) {
   return nombre.slice(0, 2).toUpperCase();
-}
-
-function compararValores(a: UsuarioDto, b: UsuarioDto, columna: ColumnaOrdenable): number {
-  if (columna === "activo") {
-    return Number(a.activo) - Number(b.activo);
-  }
-  return a[columna].localeCompare(b[columna], "es", { sensitivity: "base" });
 }
 
 function EncabezadoOrdenable({
@@ -73,6 +70,7 @@ function UsuariosPage() {
 
   const [usuarios, setUsuarios] = useState<UsuarioDto[]>([]);
   const [busqueda, setBusqueda] = useState("");
+  const [busquedaDebounced, setBusquedaDebounced] = useState("");
   const [filtroRol, setFiltroRol] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
   const [cargando, setCargando] = useState(true);
@@ -81,10 +79,16 @@ function UsuariosPage() {
   const [ordenColumna, setOrdenColumna] = useState<ColumnaOrdenable | null>(null);
   const [ordenDireccion, setOrdenDireccion] = useState<"asc" | "desc">("asc");
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
   const [editando, setEditando] = useState<UsuarioDto | null>(null);
   const [formNombre, setFormNombre] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formRolId, setFormRolId] = useState(ROLES_DISPONIBLES[0].id);
+  const [formImagenBase64, setFormImagenBase64] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
   const [creando, setCreando] = useState(false);
@@ -95,14 +99,34 @@ function UsuariosPage() {
   const [creandoGuardando, setCreandoGuardando] = useState(false);
 
   useEffect(() => {
+    const timeout = setTimeout(() => {
+      setBusquedaDebounced(busqueda);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [busqueda]);
+
+  useEffect(() => {
     cargarUsuarios();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, busquedaDebounced, filtroRol, filtroEstado, ordenColumna, ordenDireccion]);
 
   async function cargarUsuarios() {
     setCargando(true);
     setError("");
     try {
-      setUsuarios(await obtenerUsuarios());
+      const resultado = await obtenerUsuarios({
+        page,
+        pageSize,
+        busqueda: busquedaDebounced || undefined,
+        ordenarPor: ordenColumna ?? undefined,
+        ordenDireccion,
+        rol: filtroRol || undefined,
+        activo: filtroEstado ? filtroEstado === "activo" : undefined,
+      });
+      setUsuarios(resultado.items);
+      setTotalCount(resultado.totalCount);
+      setTotalPages(resultado.totalPages);
     } catch {
       setError("No se pudo cargar la lista de usuarios.");
     } finally {
@@ -117,6 +141,22 @@ function UsuariosPage() {
       setOrdenColumna(columna);
       setOrdenDireccion("asc");
     }
+    setPage(1);
+  }
+
+  function cambiarFiltroRol(v: string) {
+    setFiltroRol(v);
+    setPage(1);
+  }
+
+  function cambiarFiltroEstado(v: string) {
+    setFiltroEstado(v);
+    setPage(1);
+  }
+
+  function cambiarPageSize(nuevo: number) {
+    setPageSize(nuevo);
+    setPage(1);
   }
 
   function abrirEdicion(u: UsuarioDto) {
@@ -124,19 +164,21 @@ function UsuariosPage() {
     setFormNombre(u.nombre);
     setFormEmail(u.email);
     setFormRolId(u.rolId);
+    setFormImagenBase64(u.imagenBase64);
   }
 
   async function guardarEdicion() {
     if (!editando) return;
     setGuardando(true);
     try {
-      const actualizado = await actualizarUsuario(editando.id, {
+      await actualizarUsuario(editando.id, {
         nombre: formNombre,
         email: formEmail,
         rolId: formRolId,
+        imagenBase64: formImagenBase64,
       });
-      setUsuarios((prev) => prev.map((u) => (u.id === actualizado.id ? actualizado : u)));
       setEditando(null);
+      await cargarUsuarios();
     } catch {
       setError("No se pudo guardar el cambio.");
     } finally {
@@ -147,18 +189,18 @@ function UsuariosPage() {
   async function crear() {
     setCreandoGuardando(true);
     try {
-      const nuevo = await crearUsuario({
+      await crearUsuario({
         nombre: nuevoNombre,
         email: nuevoEmail,
         password: nuevoPassword,
         rolId: nuevoRolId,
       });
-      setUsuarios((prev) => [...prev, nuevo]);
       setCreando(false);
       setNuevoNombre("");
       setNuevoEmail("");
       setNuevoPassword("");
       setNuevoRolId(ROLES_DISPONIBLES[0].id);
+      await cargarUsuarios();
     } catch {
       setError("No se pudo crear el usuario.");
     } finally {
@@ -179,23 +221,6 @@ function UsuariosPage() {
     }
   }
 
-  const usuariosFiltrados = usuarios.filter((u) => {
-    const coincideBusqueda =
-      u.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      u.email.toLowerCase().includes(busqueda.toLowerCase());
-    const coincideRol = !filtroRol || u.rolNombre === filtroRol;
-    const coincideEstado =
-      !filtroEstado || (filtroEstado === "activo" ? u.activo : !u.activo);
-    return coincideBusqueda && coincideRol && coincideEstado;
-  });
-
-  const usuariosOrdenados = ordenColumna
-    ? [...usuariosFiltrados].sort((a, b) => {
-        const resultado = compararValores(a, b, ordenColumna);
-        return ordenDireccion === "asc" ? resultado : -resultado;
-      })
-    : usuariosFiltrados;
-
   const editandoEsUsuarioActual = editando ? user?.id === String(editando.id) : false;
 
   return (
@@ -212,7 +237,7 @@ function UsuariosPage() {
               className="w-full bg-transparent text-ink outline-none placeholder:text-ink-disabled"
             />
           </div>
-          <Select value={filtroRol || "todos"} onValueChange={(v) => setFiltroRol(v === "todos" ? "" : v)}>
+          <Select value={filtroRol || "todos"} onValueChange={(v) => cambiarFiltroRol(v === "todos" ? "" : v)}>
             <SelectTrigger
               style={{ height: "34px" }}
               className="rounded-lg border-line-strong bg-surface px-3 text-[13px] text-ink-secondary"
@@ -226,7 +251,7 @@ function UsuariosPage() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={filtroEstado || "todos"} onValueChange={(v) => setFiltroEstado(v === "todos" ? "" : v)}>
+          <Select value={filtroEstado || "todos"} onValueChange={(v) => cambiarFiltroEstado(v === "todos" ? "" : v)}>
             <SelectTrigger
               style={{ height: "34px" }}
               className="rounded-lg border-line-strong bg-surface px-3 text-[13px] text-ink-secondary"
@@ -239,6 +264,17 @@ function UsuariosPage() {
               <SelectItem value="inactivo">Inactivo</SelectItem>
             </SelectContent>
           </Select>
+          <BotonExportar
+            url="/reportes/exportar/usuarios"
+            params={{
+              busqueda: busquedaDebounced || undefined,
+              ordenarPor: ordenColumna ?? undefined,
+              ordenDireccion,
+              rol: filtroRol || undefined,
+              activo: filtroEstado ? filtroEstado === "activo" : undefined,
+            }}
+            nombreDato="usuarios"
+          />
           <button
             onClick={() => setCreando(true)}
             className="h-[34px] rounded-lg border-none bg-brand px-3.5 text-[13px] font-semibold text-brand-foreground hover:bg-brand-hover"
@@ -254,7 +290,7 @@ function UsuariosPage() {
         <div className="overflow-hidden rounded-[14px] border border-line bg-surface">
           <div className="flex items-center justify-between border-b border-line px-5 py-4">
             <span className="text-[15px] font-semibold">Usuarios</span>
-            <span className="text-[13px] text-ink-faint">{usuariosOrdenados.length} usuarios registrados</span>
+            <span className="text-[13px] text-ink-faint">{totalCount} usuarios registrados</span>
           </div>
 
           <div className="grid grid-cols-[2.2fr_1.4fr_1fr_1fr_auto] items-center gap-4 border-b border-line bg-surface-raised px-5 py-3">
@@ -267,8 +303,10 @@ function UsuariosPage() {
 
           {cargando ? (
             <div className="px-5 py-6 text-sm text-ink-faint">Cargando usuarios...</div>
+          ) : usuarios.length === 0 ? (
+            <div className="px-5 py-6 text-sm text-ink-faint">No hay usuarios que coincidan con los filtros.</div>
           ) : (
-            usuariosOrdenados.map((u) => {
+            usuarios.map((u) => {
               const esUsuarioActual = user?.id === String(u.id);
 
               return (
@@ -277,9 +315,7 @@ function UsuariosPage() {
                   className="grid grid-cols-[2.2fr_1.4fr_1fr_1fr_auto] items-center gap-4 border-b border-line-subtle px-5 py-3.5 transition-colors hover:bg-surface-sunken"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-line-strong text-xs font-semibold text-ink-secondary">
-                      {iniciales(u.nombre)}
-                    </div>
+                    <Avatar imagenBase64={u.imagenBase64} iniciales={iniciales(u.nombre)} className="h-9 w-9 text-xs" />
                     <span className="text-sm font-medium">
                       {u.nombre}
                       {esUsuarioActual && <span className="ml-1.5 text-xs text-ink-disabled">(tú)</span>}
@@ -323,6 +359,15 @@ function UsuariosPage() {
               );
             })
           )}
+
+          <Paginador
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            onPageSizeChange={cambiarPageSize}
+          />
         </div>
       </main>
 
@@ -331,6 +376,7 @@ function UsuariosPage() {
           <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-6">
             <h2 className="mb-4 text-base font-semibold">Editar usuario</h2>
             <div className="flex flex-col gap-4">
+              <CampoImagen value={formImagenBase64} onChange={setFormImagenBase64} />
               <div className="flex flex-col gap-2">
                 <label className="text-[13px] font-medium text-ink-secondary">Nombre</label>
                 <input

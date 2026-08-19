@@ -3,7 +3,8 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import ThemeToggle from "../ThemeToggle";
-import { PROYECTO_NOMBRE } from "@/config/app";
+import Avatar from "../Avatar";
+import { useConfiguracion } from "@/context/ConfiguracionContext";
 import logo from "@/assets/logo.svg";
 
 const NAV_GROUPS = [
@@ -37,7 +38,8 @@ function iniciales(email?: string) {
 }
 
 function Sidebar() {
-  const { user, logout } = useAuth();
+  const { user, perfil, logout } = useAuth();
+  const { nombreNegocio } = useConfiguracion();
   const navigate = useNavigate();
   const [menuAbierto, setMenuAbierto] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -67,9 +69,9 @@ function Sidebar() {
     <aside className="sticky top-0 flex h-screen w-[236px] flex-shrink-0 flex-col border-r border-line bg-surface-raised">
       <div className="flex items-center justify-between gap-2.5 px-5 pb-[18px] pt-5">
         <div className="flex items-center gap-2.5">
-          <img src={logo} alt={PROYECTO_NOMBRE} className="h-[30px] w-auto" />
+          <img src={logo} alt={nombreNegocio} className="h-[30px] w-auto" />
           <div className="flex flex-col">
-            <span className="text-sm font-semibold tracking-[-0.01em]">{PROYECTO_NOMBRE}</span>
+            <span className="text-sm font-semibold tracking-[-0.01em]">{nombreNegocio}</span>
             <span className="font-mono text-[11px] text-ink-disabled">
               {user?.rol === "Operador" ? "OPERADOR" : "ADMIN"}
             </span>
@@ -117,11 +119,8 @@ function Sidebar() {
       </nav>
 
       <div className="relative mt-auto flex items-center gap-2.5 border-t border-line px-4 py-4" ref={menuRef}>
-        <button
-          onClick={() => setMenuAbierto((v) => !v)}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-line-strong text-xs font-semibold text-ink-secondary hover:bg-line-hover"
-        >
-          {iniciales(user?.email)}
+        <button onClick={() => setMenuAbierto((v) => !v)} className="rounded-full hover:opacity-80">
+          <Avatar imagenBase64={perfil?.imagenBase64} iniciales={iniciales(user?.email)} className="h-8 w-8 text-xs" />
         </button>
         <div className="flex flex-col overflow-hidden">
           <span className="truncate text-[13px] font-medium">

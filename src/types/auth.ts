@@ -9,6 +9,16 @@ export interface RegisterDto {
   password: string;
 }
 
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+export interface ResetPasswordDto {
+  email: string;
+  tempPassword: string;
+  newPassword: string;
+}
+
 export interface LoginResponse {
   token: string;
 }
