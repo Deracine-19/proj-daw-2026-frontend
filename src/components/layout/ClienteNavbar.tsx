@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, ImageUp } from "lucide-react";
+import { isAxiosError } from "axios";
+import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import ThemeToggle from "@/components/ThemeToggle";
-import { PROYECTO_NOMBRE } from "@/config/app";
+import Avatar from "@/components/Avatar";
+import CampoImagen from "@/components/CampoImagen";
+import { useConfiguracion } from "@/context/ConfiguracionContext";
+import { actualizarMiFoto } from "@/services/usuarioService";
 import logo from "@/assets/logo.svg";
 import { obtenerMisReservas, type ReservaDto } from "@/services/reservaService";
 
@@ -18,12 +23,25 @@ function esPasada(r: ReservaDto): boolean {
   return new Date(anio, mes - 1, dia, h, m).getTime() < Date.now();
 }
 
+function mensajeError(err: unknown, fallback: string): string {
+  if (isAxiosError(err) && typeof err.response?.data?.mensaje === "string") {
+    return err.response.data.mensaje;
+  }
+  return fallback;
+}
+
 function ClienteNavbar() {
-  const { user, logout } = useAuth();
+  const { user, perfil, logout, actualizarFotoPerfil } = useAuth();
+  const { nombreNegocio } = useConfiguracion();
   const navigate = useNavigate();
   const [menuAbierto, setMenuAbierto] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const [reservasActivas, setReservasActivas] = useState(0);
+
+  const [cambiandoFoto, setCambiandoFoto] = useState(false);
+  const [fotoForm, setFotoForm] = useState<string | null>(null);
+  const [errorFoto, setErrorFoto] = useState("");
+  const [guardandoFoto, setGuardandoFoto] = useState(false);
 
   useEffect(() => {
     function handleClickFuera(e: MouseEvent) {
@@ -54,13 +72,35 @@ function ClienteNavbar() {
     navigate("/login");
   }
 
+  function abrirCambiarFoto() {
+    setMenuAbierto(false);
+    setErrorFoto("");
+    setFotoForm(perfil?.imagenBase64 ?? null);
+    setCambiandoFoto(true);
+  }
+
+  async function guardarFoto() {
+    setGuardandoFoto(true);
+    setErrorFoto("");
+    try {
+      const actualizado = await actualizarMiFoto(fotoForm);
+      actualizarFotoPerfil(actualizado.imagenBase64);
+      setCambiandoFoto(false);
+      toast.success("Foto de perfil actualizada.");
+    } catch (err) {
+      setErrorFoto(mensajeError(err, "No se pudo actualizar la foto."));
+    } finally {
+      setGuardandoFoto(false);
+    }
+  }
+
   return (
     <header className="sticky top-0 z-20 flex h-[60px] items-center justify-between border-b border-line bg-page/80 px-7 backdrop-blur-md">
       <div className="flex items-center gap-7">
         <div className="flex items-center gap-2.5">
-          <img src={logo} alt={PROYECTO_NOMBRE} className="h-[30px] w-auto" />
+          <img src={logo} alt={nombreNegocio} className="h-[30px] w-auto" />
           <span className="text-[15px] font-semibold tracking-[-0.01em]">
-            {PROYECTO_NOMBRE}
+            {nombreNegocio}
           </span>
         </div>
         <nav className="flex items-center gap-[22px]">
@@ -98,11 +138,8 @@ function ClienteNavbar() {
         <ThemeToggle />
 
         <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setMenuAbierto((v) => !v)}
-            className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-line-strong text-[13px] font-semibold text-ink-secondary hover:bg-line-hover"
-          >
-            {iniciales(user?.email)}
+          <button onClick={() => setMenuAbierto((v) => !v)} className="rounded-full hover:opacity-80">
+            <Avatar imagenBase64={perfil?.imagenBase64} iniciales={iniciales(user?.email)} className="h-[34px] w-[34px] text-[13px]" />
           </button>
 
           {menuAbierto && (
@@ -114,8 +151,15 @@ function ClienteNavbar() {
                 <p className="text-[11px] text-ink-faint">{user?.rol}</p>
               </div>
               <button
-                onClick={handleLogout}
+                onClick={abrirCambiarFoto}
                 className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] text-ink-secondary hover:bg-hover-strong"
+              >
+                <ImageUp className="h-4 w-4" />
+                Cambiar foto
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex w-full items-center gap-2 border-t border-line px-3.5 py-2.5 text-left text-[13px] text-ink-secondary hover:bg-hover-strong"
               >
                 <LogOut className="h-4 w-4" />
                 Cerrar sesión
@@ -124,6 +168,32 @@ function ClienteNavbar() {
           )}
         </div>
       </div>
+
+      {cambiandoFoto && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-6">
+            <h2 className="mb-4 text-base font-semibold">Cambiar foto de perfil</h2>
+            <CampoImagen value={fotoForm} onChange={setFotoForm} />
+            {errorFoto && <p className="mt-4 text-sm text-negative">{errorFoto}</p>}
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setCambiandoFoto(false)}
+                disabled={guardandoFoto}
+                className="h-9 rounded-lg border border-line-strong bg-transparent px-4 text-[13px] font-medium text-ink-secondary hover:bg-hover-strong disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={guardarFoto}
+                disabled={guardandoFoto}
+                className="h-9 rounded-lg border-none bg-brand px-4 text-[13px] font-semibold text-brand-foreground hover:bg-brand-hover disabled:opacity-60"
+              >
+                {guardandoFoto ? "Guardando..." : "Guardar foto"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

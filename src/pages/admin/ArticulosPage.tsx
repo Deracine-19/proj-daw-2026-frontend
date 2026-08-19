@@ -11,6 +11,7 @@ import {
 import type { ArticuloDto } from "@/types/articulo";
 import Paginador from "@/components/Paginador";
 import CampoImagen from "@/components/CampoImagen";
+import BotonExportar from "@/components/BotonExportar";
 
 function mensajeError(err: unknown, fallback: string): string {
   if (isAxiosError(err) && typeof err.response?.data?.mensaje === "string") {
@@ -196,6 +197,15 @@ function ArticulosPage() {
               className="w-full bg-transparent text-ink outline-none placeholder:text-ink-disabled"
             />
           </div>
+          <BotonExportar
+            url="/reportes/exportar/articulos"
+            params={{
+              busqueda: busquedaDebounced || undefined,
+              ordenarPor: ordenColumna ?? undefined,
+              ordenDireccion,
+            }}
+            nombreDato="articulos"
+          />
           <button
             onClick={() => {
               setFormNuevaError("");

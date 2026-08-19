@@ -7,7 +7,7 @@ import {
   resetPassword as resetPasswordService,
 } from "@/services/authService";
 import { isAxiosError } from "axios";
-import { PROYECTO_NOMBRE } from "@/config/app";
+import { useConfiguracion } from "@/context/ConfiguracionContext";
 import logo from "@/assets/logo.svg";
 
 type Tab = "login" | "register";
@@ -39,6 +39,7 @@ function Login() {
   const [cargandoOlvide, setCargandoOlvide] = useState(false);
 
   const { login, user } = useAuth();
+  const { nombreNegocio } = useConfiguracion();
   const navigate = useNavigate();
   const isReg = tab === "register";
 
@@ -120,7 +121,7 @@ function Login() {
 
       <div className="flex w-full max-w-[360px] flex-col gap-6">
         <div className="flex flex-col items-center gap-[18px]">
-          <img src={logo} alt={PROYECTO_NOMBRE} className="h-11 w-auto" />
+          <img src={logo} alt={nombreNegocio} className="h-11 w-auto" />
           <div className="flex flex-col items-center gap-1.5">
             <h1 className="m-0 text-center text-2xl font-semibold tracking-[-0.02em] text-ink">
               {isReg ? "Crea tu cuenta" : "Bienvenido de vuelta"}

@@ -11,6 +11,7 @@ import {
 import type { CanchaDto } from "@/types/cancha";
 import Paginador from "@/components/Paginador";
 import CampoImagen from "@/components/CampoImagen";
+import BotonExportar from "@/components/BotonExportar";
 
 function mensajeError(err: unknown, fallback: string): string {
   if (isAxiosError(err) && typeof err.response?.data?.mensaje === "string") {
@@ -211,6 +212,15 @@ function CanchasPage() {
               className="w-full bg-transparent text-ink outline-none placeholder:text-ink-disabled"
             />
           </div>
+          <BotonExportar
+            url="/reportes/exportar/canchas"
+            params={{
+              busqueda: busquedaDebounced || undefined,
+              ordenarPor: ordenColumna ?? undefined,
+              ordenDireccion,
+            }}
+            nombreDato="canchas"
+          />
           <button
             onClick={() => {
               setFormNuevaError("");

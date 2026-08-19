@@ -17,6 +17,7 @@ import {
 import SelectorRangoFechas from "@/components/SelectorRangoFechas";
 import { calcularRango, type PresetRango, type RangoFechas } from "@/lib/rangoFechas";
 import Paginador from "@/components/Paginador";
+import BotonExportar from "@/components/BotonExportar";
 
 const ESTADO_COLOR: Record<string, string> = {
   CONFIRMADA: "var(--color-positive)",
@@ -240,6 +241,18 @@ function ReservasPage() {
               <SelectItem value="NOSHOW">No-Show</SelectItem>
             </SelectContent>
           </Select>
+          <BotonExportar
+            url="/reportes/exportar/reservas"
+            params={{
+              busqueda: busquedaDebounced || undefined,
+              ordenarPor: ordenColumna ?? undefined,
+              ordenDireccion,
+              fechaInicio: rango.desde,
+              fechaFin: rango.hasta,
+              estado: filtroEstado || undefined,
+            }}
+            nombreDato="reservas"
+          />
         </div>
       </header>
 

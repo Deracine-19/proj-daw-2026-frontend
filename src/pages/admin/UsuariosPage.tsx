@@ -16,6 +16,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Paginador from "@/components/Paginador";
+import BotonExportar from "@/components/BotonExportar";
+import Avatar from "@/components/Avatar";
+import CampoImagen from "@/components/CampoImagen";
 
 const ROL_COLOR: Record<string, string> = {
   Administrador: "var(--color-brand)",
@@ -85,6 +88,7 @@ function UsuariosPage() {
   const [formNombre, setFormNombre] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formRolId, setFormRolId] = useState(ROLES_DISPONIBLES[0].id);
+  const [formImagenBase64, setFormImagenBase64] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
   const [creando, setCreando] = useState(false);
@@ -160,6 +164,7 @@ function UsuariosPage() {
     setFormNombre(u.nombre);
     setFormEmail(u.email);
     setFormRolId(u.rolId);
+    setFormImagenBase64(u.imagenBase64);
   }
 
   async function guardarEdicion() {
@@ -170,6 +175,7 @@ function UsuariosPage() {
         nombre: formNombre,
         email: formEmail,
         rolId: formRolId,
+        imagenBase64: formImagenBase64,
       });
       setEditando(null);
       await cargarUsuarios();
@@ -258,6 +264,17 @@ function UsuariosPage() {
               <SelectItem value="inactivo">Inactivo</SelectItem>
             </SelectContent>
           </Select>
+          <BotonExportar
+            url="/reportes/exportar/usuarios"
+            params={{
+              busqueda: busquedaDebounced || undefined,
+              ordenarPor: ordenColumna ?? undefined,
+              ordenDireccion,
+              rol: filtroRol || undefined,
+              activo: filtroEstado ? filtroEstado === "activo" : undefined,
+            }}
+            nombreDato="usuarios"
+          />
           <button
             onClick={() => setCreando(true)}
             className="h-[34px] rounded-lg border-none bg-brand px-3.5 text-[13px] font-semibold text-brand-foreground hover:bg-brand-hover"
@@ -298,9 +315,7 @@ function UsuariosPage() {
                   className="grid grid-cols-[2.2fr_1.4fr_1fr_1fr_auto] items-center gap-4 border-b border-line-subtle px-5 py-3.5 transition-colors hover:bg-surface-sunken"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-line-strong text-xs font-semibold text-ink-secondary">
-                      {iniciales(u.nombre)}
-                    </div>
+                    <Avatar imagenBase64={u.imagenBase64} iniciales={iniciales(u.nombre)} className="h-9 w-9 text-xs" />
                     <span className="text-sm font-medium">
                       {u.nombre}
                       {esUsuarioActual && <span className="ml-1.5 text-xs text-ink-disabled">(tú)</span>}
@@ -361,6 +376,7 @@ function UsuariosPage() {
           <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-6">
             <h2 className="mb-4 text-base font-semibold">Editar usuario</h2>
             <div className="flex flex-col gap-4">
+              <CampoImagen value={formImagenBase64} onChange={setFormImagenBase64} />
               <div className="flex flex-col gap-2">
                 <label className="text-[13px] font-medium text-ink-secondary">Nombre</label>
                 <input

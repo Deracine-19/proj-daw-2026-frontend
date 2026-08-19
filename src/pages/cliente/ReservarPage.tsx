@@ -9,6 +9,7 @@ import {
   crearReserva,
   type FranjaHoraria,
 } from "@/services/reservaService";
+import { useConfiguracion } from "@/context/ConfiguracionContext";
 import type { CanchaDto } from "@/types/cancha";
 import type { ArticuloDto } from "@/types/articulo";
 
@@ -122,6 +123,7 @@ interface Seleccion {
 
 function ReservarPage() {
   const navigate = useNavigate();
+  const { horaAperturaNum, horaCierreNum } = useConfiguracion();
   const [dias] = useState(() => generarDias(7));
   const [diaIdx, setDiaIdx] = useState(0);
   const [canchas, setCanchas] = useState<CanchaDto[]>([]);
@@ -144,10 +146,20 @@ function ReservarPage() {
 
   const diaActual = dias[diaIdx];
 
+  // Bloquea el scroll de la página mientras el lightbox de la imagen está abierto.
+  useEffect(() => {
+    if (!imagenAmpliada) return;
+    const overflowOriginal = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = overflowOriginal;
+    };
+  }, [imagenAmpliada]);
+
   useEffect(() => {
     cargarCanchasYDisponibilidad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diaIdx]);
+  }, [diaIdx, horaAperturaNum, horaCierreNum]);
 
   useEffect(() => {
     cargarArticulos();
@@ -173,7 +185,10 @@ function ReservarPage() {
       const entradas = await Promise.all(
         activas.map(
           async (c) =>
-            [c.id, await obtenerDisponibilidad(c.id, diaActual.fecha)] as const,
+            [
+              c.id,
+              await obtenerDisponibilidad(c.id, diaActual.fecha, horaAperturaNum, horaCierreNum),
+            ] as const,
         ),
       );
       setDisponibilidad(Object.fromEntries(entradas));

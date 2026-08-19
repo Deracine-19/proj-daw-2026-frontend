@@ -28,3 +28,14 @@ export async function cambiarEstadoUsuario(id: number): Promise<UsuarioDto> {
   const { data } = await api.patch<UsuarioDto>(`/usuarios/${id}/estado`);
   return data;
 }
+
+// Perfil propio del usuario autenticado (cualquier rol) — el JWT no trae nombre ni foto.
+export async function obtenerMiPerfil(): Promise<UsuarioDto> {
+  const { data } = await api.get<UsuarioDto>("/usuarios/perfil");
+  return data;
+}
+
+export async function actualizarMiFoto(imagenBase64: string | null): Promise<UsuarioDto> {
+  const { data } = await api.patch<UsuarioDto>("/usuarios/perfil/foto", { imagenBase64 });
+  return data;
+}
