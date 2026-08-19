@@ -114,7 +114,7 @@ function DashboardPage() {
       <>
         <header className="flex h-[60px] items-center border-b border-line px-7">
           <span className="text-base font-semibold">
-            panel de control
+            Panel de control
           </span>
         </header>
 

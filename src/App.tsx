@@ -23,7 +23,7 @@ import { useAuth } from "@/context/AuthContext";
 
 function AdminIndexRedirect() {
   const { user } = useAuth();
-  return <Navigate to={user?.rol === "Operador" ? "/admin/reservas" : "/admin/dashboard" } replace />;
+  return <Navigate to={user?.rol === "Operador" ? "/admin/reservas" : "/admin/dashboard"} replace />;
 }
 
 function App() {
@@ -37,20 +37,19 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/no-autorizado" element={<NoAutorizado />} />
 
-            <Route
-              element={
-                <ProtectedRoute allowedRoles={["Administrador", "Operador"]} />
-              }
-            >
-              <Route element={<AdminLayout />}>
-                <Route index path="/admin" element={<AdminIndexRedirect />} />
-                <Route path="/admin/reservas" element={<ReservasPage />} />
-                <Route path="/admin/dashboard" element={<DashboardPage />}/>
-
+              <Route
+                element={
+                  <ProtectedRoute allowedRoles={["Administrador", "Operador"]} />
+                }
+              >
+                <Route element={<AdminLayout />}>
+                  <Route index path="/admin" element={<AdminIndexRedirect />} />
+                  <Route path="/admin/reservas" element={<ReservasPage />} />
 
                   <Route
                     element={<ProtectedRoute allowedRoles={["Administrador"]} />}
                   >
+                    <Route path="/admin/dashboard" element={<DashboardPage />} />
                     <Route path="/admin/canchas" element={<CanchasPage />} />
                     <Route path="/admin/usuarios" element={<UsuariosPage />} />
                     <Route path="/admin/articulos" element={<ArticulosPage />} />

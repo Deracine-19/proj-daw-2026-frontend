@@ -191,13 +191,6 @@ function CanchasPage() {
     }
   }
 
-  const stats = [
-    { label: "Canchas registradas", value: String(totalCount), delta: "En este filtro" },
-    { label: "Reservas hoy", value: "—", delta: "Pendiente de conectar" },
-    { label: "Ingresos hoy", value: "—", delta: "Pendiente de conectar" },
-    { label: "Ocupación", value: "—", delta: "Pendiente de conectar" },
-  ];
-
   return (
     <>
       <header className="sticky top-0 z-10 flex h-[60px] items-center justify-between gap-4 border-b border-line bg-page/80 px-7 backdrop-blur-md">
@@ -235,16 +228,6 @@ function CanchasPage() {
 
       <main className="flex flex-1 flex-col gap-6 p-7">
         {error && <p className="text-sm text-negative">{error}</p>}
-
-        <div className="grid grid-cols-4 gap-4">
-          {stats.map((s) => (
-            <div key={s.label} className="flex flex-col gap-2.5 rounded-[14px] border border-line bg-surface p-[18px]">
-              <span className="text-xs uppercase tracking-[.06em] text-ink-faint">{s.label}</span>
-              <span className="text-[26px] font-semibold tracking-[-0.02em]">{s.value}</span>
-              <span className="text-xs font-medium text-ink-faint">{s.delta}</span>
-            </div>
-          ))}
-        </div>
 
         <div className="overflow-hidden rounded-[14px] border border-line bg-surface">
           <div className="flex items-center justify-between border-b border-line px-5 py-4">

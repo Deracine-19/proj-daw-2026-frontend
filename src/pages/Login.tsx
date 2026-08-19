@@ -44,7 +44,7 @@ function Login() {
   const isReg = tab === "register";
 
   function redirigirSegunRol(rol: string) {
-    if (rol === "Administrador") navigate("/admin/canchas");
+    if (rol === "Administrador") navigate("/admin/dashboard");
     else if (rol === "Operador") navigate("/admin/reservas");
     else navigate("/reservas");
   }
