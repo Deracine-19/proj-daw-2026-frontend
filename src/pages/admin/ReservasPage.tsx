@@ -251,6 +251,7 @@ function ReservasPage() {
               fechaFin: rango.hasta,
               estado: filtroEstado || undefined,
             }}
+            hayDatos={totalCount > 0}
             nombreDato="reservas"
           />
         </div>

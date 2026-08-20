@@ -24,13 +24,21 @@ function formatoMoneda(n: number) {
   return "L " + n.toLocaleString("en-US");
 }
 
+// "" (vacío) en vez de 0 en los campos numéricos de un formulario nuevo — así el input
+// arranca realmente vacío en vez de mostrar un "0" que el usuario tendría que borrar
+// primero (y que de paso generaba el "05" al escribir encima). Al editar una cancha
+// existente, abrirEdicion() sobrescribe esto con el número real que ya tiene guardado.
+function aNumero(v: number | ""): number {
+  return v === "" ? 0 : v;
+}
+
 const FORM_VACIO: {
   nombre: string;
   descripcion: string;
-  precioHora: number;
-  cantidadJugadores: number;
+  precioHora: number | "";
+  cantidadJugadores: number | "";
   imagenBase64: string | null;
-} = { nombre: "", descripcion: "", precioHora: 0, cantidadJugadores: 0, imagenBase64: null };
+} = { nombre: "", descripcion: "", precioHora: "", cantidadJugadores: "", imagenBase64: null };
 
 type ColumnaOrdenable = "nombre" | "cantidadJugadores" | "precioHora" | "estado";
 
@@ -153,7 +161,12 @@ function CanchasPage() {
     setGuardando(true);
     setFormError("");
     try {
-      await actualizarCancha(editando.id, { ...form, estado: editando.estado });
+      await actualizarCancha(editando.id, {
+        ...form,
+        precioHora: aNumero(form.precioHora),
+        cantidadJugadores: aNumero(form.cantidadJugadores),
+        estado: editando.estado,
+      });
       setEditando(null);
       await cargar();
     } catch (err) {
@@ -167,7 +180,12 @@ function CanchasPage() {
     setCreandoGuardando(true);
     setFormNuevaError("");
     try {
-      await crearCancha({ ...formNueva, estado: true });
+      await crearCancha({
+        ...formNueva,
+        precioHora: aNumero(formNueva.precioHora),
+        cantidadJugadores: aNumero(formNueva.cantidadJugadores),
+        estado: true,
+      });
       setCreando(false);
       setFormNueva(FORM_VACIO);
       await cargar();
@@ -213,6 +231,7 @@ function CanchasPage() {
               ordenDireccion,
             }}
             nombreDato="canchas"
+            hayDatos={totalCount > 0}
           />
           <button
             onClick={() => {
@@ -374,14 +393,24 @@ function Campo({ label, value, onChange }: { label: string; value: string; onCha
   );
 }
 
-function CampoNumero({ label, value, onChange, sinContador = false }: { label: string; value: number; onChange: (v: number) => void; sinContador?: boolean }) {
+function CampoNumero({
+  label,
+  value,
+  onChange,
+  sinContador = false,
+}: {
+  label: string;
+  value: number | "";
+  onChange: (v: number | "") => void;
+  sinContador?: boolean;
+}) {
   return (
     <div className="flex flex-col gap-2">
       <label className="text-[13px] font-medium text-ink-secondary">{label}</label>
       <input
         type="number"
         value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))}
         className={`h-10.5 rounded-[9px] border border-line-strong bg-panel px-3 text-sm text-ink outline-none focus:border-ink-disabled ${
           sinContador ? "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" : ""
         }`}

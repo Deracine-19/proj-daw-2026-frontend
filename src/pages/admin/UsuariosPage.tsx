@@ -274,6 +274,7 @@ function UsuariosPage() {
               activo: filtroEstado ? filtroEstado === "activo" : undefined,
             }}
             nombreDato="usuarios"
+            hayDatos={totalCount > 0}
           />
           <button
             onClick={() => setCreando(true)}

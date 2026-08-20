@@ -67,7 +67,9 @@ function MisReservasPage() {
           <h1 className="m-0 text-[28px] font-semibold tracking-[-0.02em]">Mis reservas</h1>
           <p className="m-0 text-[15px] text-ink-muted">Historial de tus reservaciones y su estado actual.</p>
         </div>
-        {reservas.length > 0 && <BotonExportar url="/reportes/exportar/mis-reservas" nombreDato="mis-reservas" />}
+        {reservas.length > 0 && (
+          <BotonExportar url="/reportes/exportar/mis-reservas" nombreDato="mis-reservas" hayDatos={reservas.length > 0} />
+        )}
       </div>
 
       {error && <p className="text-sm text-negative">{error}</p>}

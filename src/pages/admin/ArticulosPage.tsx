@@ -24,10 +24,17 @@ function formatoMoneda(n: number) {
   return "L " + n.toLocaleString("en-US");
 }
 
-const FORM_VACIO: { nombre: string; descripcion: string; precio: number; imagenBase64: string | null } = {
+// "" (vacío) en vez de 0 — así el campo de precio arranca realmente vacío en un formulario
+// nuevo, en vez de mostrar un "0" que genera el "05" al escribir encima. Al editar un
+// artículo existente, abrirEdicion() sobrescribe esto con el precio real ya guardado.
+function aNumero(v: number | ""): number {
+  return v === "" ? 0 : v;
+}
+
+const FORM_VACIO: { nombre: string; descripcion: string; precio: number | ""; imagenBase64: string | null } = {
   nombre: "",
   descripcion: "",
-  precio: 0,
+  precio: "",
   imagenBase64: null,
 };
 
@@ -145,7 +152,7 @@ function ArticulosPage() {
     setGuardando(true);
     setFormError("");
     try {
-      await actualizarArticulo(editando.id, { ...form, estado: editando.estado });
+      await actualizarArticulo(editando.id, { ...form, precio: aNumero(form.precio), estado: editando.estado });
       setEditando(null);
       await cargar();
     } catch (err) {
@@ -159,7 +166,7 @@ function ArticulosPage() {
     setCreandoGuardando(true);
     setFormNuevaError("");
     try {
-      await crearArticulo(formNueva);
+      await crearArticulo({ ...formNueva, precio: aNumero(formNueva.precio) });
       setCreando(false);
       setFormNueva(FORM_VACIO);
       await cargar();
@@ -205,6 +212,7 @@ function ArticulosPage() {
               ordenDireccion,
             }}
             nombreDato="articulos"
+            hayDatos={totalCount > 0}
           />
           <button
             onClick={() => {
@@ -360,14 +368,22 @@ function Campo({ label, value, onChange }: { label: string; value: string; onCha
   );
 }
 
-function CampoNumero({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function CampoNumero({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number | "";
+  onChange: (v: number | "") => void;
+}) {
   return (
     <div className="flex flex-col gap-2">
       <label className="text-[13px] font-medium text-ink-secondary">{label}</label>
       <input
         type="number"
         value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))}
         className="h-10.5 rounded-[9px] border border-line-strong bg-panel px-3 text-sm text-ink outline-none focus:border-ink-disabled [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
     </div>
