@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { LogOut, ImageUp } from "lucide-react";
+import { LogOut, ImageUp, KeyRound } from "lucide-react";
 import { isAxiosError } from "axios";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import Avatar from "@/components/Avatar";
 import CampoImagen from "@/components/CampoImagen";
+import CambiarPasswordModal from "@/components/CambiarPasswordModal";
 import { useConfiguracion } from "@/context/ConfiguracionContext";
 import { actualizarMiFoto } from "@/services/usuarioService";
 import logo from "@/assets/logo.svg";
@@ -43,6 +44,8 @@ function ClienteNavbar() {
   const [errorFoto, setErrorFoto] = useState("");
   const [guardandoFoto, setGuardandoFoto] = useState(false);
 
+  const [cambiandoPassword, setCambiandoPassword] = useState(false);
+
   useEffect(() => {
     function handleClickFuera(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -77,6 +80,11 @@ function ClienteNavbar() {
     setErrorFoto("");
     setFotoForm(perfil?.imagenBase64 ?? null);
     setCambiandoFoto(true);
+  }
+
+  function abrirCambiarPassword() {
+    setMenuAbierto(false);
+    setCambiandoPassword(true);
   }
 
   async function guardarFoto() {
@@ -156,6 +164,13 @@ function ClienteNavbar() {
                   Cambiar foto
                 </button>
                 <button
+                  onClick={abrirCambiarPassword}
+                  className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] text-ink-secondary hover:bg-hover-strong"
+                >
+                  <KeyRound className="h-4 w-4" />
+                  Cambiar contraseña
+                </button>
+                <button
                   onClick={handleLogout}
                   className="flex w-full items-center gap-2 border-t border-line px-3.5 py-2.5 text-left text-[13px] text-ink-secondary hover:bg-hover-strong"
                 >
@@ -192,6 +207,10 @@ function ClienteNavbar() {
             </div>
           </div>
         </div>
+      )}
+
+      {cambiandoPassword && (
+        <CambiarPasswordModal email={user?.email} onClose={() => setCambiandoPassword(false)} />
       )}
     </>
   );
