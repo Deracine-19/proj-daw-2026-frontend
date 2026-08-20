@@ -10,6 +10,7 @@ import {
   type FranjaHoraria,
 } from "@/services/reservaService";
 import { useConfiguracion } from "@/context/ConfiguracionContext";
+import { useAuth } from "@/context/AuthContext";
 import type { CanchaDto } from "@/types/cancha";
 import type { ArticuloDto } from "@/types/articulo";
 
@@ -124,6 +125,10 @@ interface Seleccion {
 function ReservarPage() {
   const navigate = useNavigate();
   const { horaAperturaNum, horaCierreNum } = useConfiguracion();
+  const { perfil } = useAuth();
+  // El JWT no trae el nombre (solo email/rol) — se toma del perfil, que se carga aparte.
+  // Mientras no haya cargado (o si falla), el saludo cae al genérico "Hola".
+  const primerNombre = perfil?.nombre.split(" ")[0];
   const [dias] = useState(() => generarDias(7));
   const [diaIdx, setDiaIdx] = useState(0);
   const [canchas, setCanchas] = useState<CanchaDto[]>([]);
@@ -266,7 +271,7 @@ function ReservarPage() {
     <main className="mx-auto flex max-w-[1120px] flex-col gap-7 px-7 pb-20 pt-9">
       <div className="flex flex-col gap-1.5">
         <h1 className="m-0 text-[28px] font-semibold tracking-[-0.02em]">
-          Hola
+          {primerNombre ? `Hola, ${primerNombre}` : "Hola"}
         </h1>
         <p className="m-0 text-[15px] text-ink-muted">
           Reserva tu cancha de fútbol. Elige un día y un horario disponible.

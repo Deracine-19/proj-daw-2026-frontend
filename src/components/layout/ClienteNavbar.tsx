@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { LogOut, ImageUp, KeyRound } from "lucide-react";
 import { isAxiosError } from "axios";
 import { toast } from "sonner";
@@ -35,6 +35,7 @@ function ClienteNavbar() {
   const { user, perfil, logout, actualizarFotoPerfil } = useAuth();
   const { nombreNegocio } = useConfiguracion();
   const navigate = useNavigate();
+  const location = useLocation();
   const [menuAbierto, setMenuAbierto] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const [reservasActivas, setReservasActivas] = useState(0);
@@ -56,9 +57,12 @@ function ClienteNavbar() {
     return () => document.removeEventListener("mousedown", handleClickFuera);
   }, []);
 
+  // Se recalcula en cada cambio de ruta (no solo al montar) — así queda al día después de
+  // crear una reserva (ReservarPage navega a /reservas/confirmacion/:id al terminar) sin
+  // tener que compartir estado entre páginas ni que ClienteNavbar sepa qué acción ocurrió.
   useEffect(() => {
     cargarReservasActivas();
-  }, []);
+  }, [location.pathname]);
 
   async function cargarReservasActivas() {
     try {
