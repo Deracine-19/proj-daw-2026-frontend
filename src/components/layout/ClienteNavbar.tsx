@@ -121,9 +121,6 @@ function ClienteNavbar() {
             >
               Mis reservas
             </NavLink>
-            <span className="cursor-not-allowed text-sm text-ink-disabled">
-              Canchas
-            </span>
           </nav>
         </div>
 
