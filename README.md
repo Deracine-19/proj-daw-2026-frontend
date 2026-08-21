@@ -10,17 +10,6 @@ Este repo es el frontend. El backend vive en un repo separado: `proj-daw-2026-ba
  
 React + Vite + TypeScript · Tailwind CSS v4 · shadcn/ui (Radix) · React Router · Axios · sonner (toasts)
  
-## Estructura
- 
-```
-src/
-├─ pages/          Pantallas, separadas en admin/ y cliente/
-├─ components/      layout/ (Sidebar, Navbars), ui/ (shadcn)
-├─ context/         AuthContext (sesión/rol), ThemeContext (claro/oscuro)
-├─ services/        Llamadas al API (uno por entidad)
-├─ types/           Interfaces TypeScript de los DTOs del backend
-```
- 
 ## Cómo correrlo
  
 1. Necesitas el **backend corriendo primero** (ver su propio README).
