@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import {
   obtenerReservas,
   cancelarReserva as apiCancelarReserva,
@@ -107,6 +108,7 @@ function ReservasPage() {
   const [accionConfirmar, setAccionConfirmar] = useState<AccionConfirmar | null>(null);
   const [procesandoAccion, setProcesandoAccion] = useState(false);
   const [procesandoPagoId, setProcesandoPagoId] = useState<number | null>(null);
+  const [expandidas, setExpandidas] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -169,6 +171,15 @@ function ReservasPage() {
   function cambiarPageSize(nuevo: number) {
     setPageSize(nuevo);
     setPage(1);
+  }
+
+  function toggleExpandida(id: number) {
+    setExpandidas((prev) => {
+      const siguiente = new Set(prev);
+      if (siguiente.has(id)) siguiente.delete(id);
+      else siguiente.add(id);
+      return siguiente;
+    });
   }
 
   async function marcarPagada(r: ReservaDto) {
@@ -266,7 +277,8 @@ function ReservasPage() {
             <span className="text-[13px] text-ink-faint">{totalCount} reservas</span>
           </div>
 
-          <div className="grid grid-cols-[1.4fr_1.2fr_1.2fr_0.8fr_1fr_0.9fr_230px] items-center gap-3 border-b border-line bg-surface-raised px-5 py-3">
+          <div className="grid grid-cols-[28px_1.4fr_1.2fr_1.2fr_0.8fr_1fr_0.9fr_230px] items-center gap-3 border-b border-line bg-surface-raised px-5 py-3">
+            <span />
             <EncabezadoOrdenable label="Cliente" columna="nombreUsuario" ordenColumna={ordenColumna} ordenDireccion={ordenDireccion} onClick={cambiarOrden} />
             <EncabezadoOrdenable label="Cancha" columna="nombreCancha" ordenColumna={ordenColumna} ordenDireccion={ordenDireccion} onClick={cambiarOrden} />
             <EncabezadoOrdenable label="Fecha" columna="fecha" ordenColumna={ordenColumna} ordenDireccion={ordenDireccion} onClick={cambiarOrden} />
@@ -286,12 +298,26 @@ function ReservasPage() {
               const noShow = r.estadoReserva === "NOSHOW";
               const cerrada = cancelada || noShow;
               const pasada = esPasada(r);
+              const tieneArticulos = r.articulos.length > 0;
+              const expandida = expandidas.has(r.id);
 
               return (
+                <Fragment key={r.id}>
                 <div
-                  key={r.id}
-                  className="grid grid-cols-[1.4fr_1.2fr_1.2fr_0.8fr_1fr_0.9fr_230px] items-center gap-3 border-b border-line-subtle px-5 py-3.5 transition-colors hover:bg-surface-sunken"
+                  className="grid grid-cols-[28px_1.4fr_1.2fr_1.2fr_0.8fr_1fr_0.9fr_230px] items-center gap-3 border-b border-line-subtle px-5 py-3.5 transition-colors hover:bg-surface-sunken"
                 >
+                  <button
+                    type="button"
+                    onClick={() => tieneArticulos && toggleExpandida(r.id)}
+                    disabled={!tieneArticulos}
+                    className={`flex h-6 w-6 items-center justify-center rounded-md ${
+                      tieneArticulos ? "text-ink-faint hover:bg-hover-strong hover:text-ink-secondary" : "cursor-default"
+                    }`}
+                  >
+                    {tieneArticulos && (
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandida ? "rotate-180" : ""}`} />
+                    )}
+                  </button>
                   <div className="flex flex-col">
                     <span className="text-sm font-medium">{r.nombreUsuario ?? "—"}</span>
                     <span className="font-mono text-xs text-ink-faint">{r.codigoReserva}</span>
@@ -349,6 +375,23 @@ function ReservasPage() {
                     )}
                   </div>
                 </div>
+
+                {expandida && tieneArticulos && (
+                  <div className="border-b border-line-subtle bg-page px-5 py-4 pl-[52px]">
+                    <span className="mb-2 block text-[11px] uppercase tracking-[.06em] text-ink-faint">Artículos</span>
+                    <div className="flex flex-col gap-1.5">
+                      {r.articulos.map((a, i) => (
+                        <div key={i} className="flex justify-between gap-2.5 text-[13px]">
+                          <span className="text-ink-secondary">
+                            {a.nombreArticulo ?? "Artículo"} × {a.cantidad}
+                          </span>
+                          <span className="font-mono text-ink-muted">{formatoMoneda(a.precioUnitario * a.cantidad)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                </Fragment>
               );
             })
           )}
