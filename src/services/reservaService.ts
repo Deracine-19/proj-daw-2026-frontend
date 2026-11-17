@@ -22,6 +22,8 @@ export interface ReservaDto {
   estadoPago: boolean;
   precioAplicado: number;
   total: number;
+  // ISO en UTC — hasta cuándo el cliente puede cancelarla; null si ya no puede (el backend decide).
+  cancelableHasta: string | null;
   articulos: ReservaArticuloDto[];
 }
 
