@@ -11,12 +11,10 @@ COPY . .
 
 # Vite "hornea" sus variables de entorno (import.meta.env) en el bundle en tiempo de BUILD,
 # no de ejecución — por eso viajan como build args, no como variables normales del contenedor.
-# En Railway: Settings > Variables del servicio del frontend, con estos mismos nombres —
-# Railway los pasa automáticamente como build args si coinciden con los ARG de abajo.
+# En Railway: Settings > Variables del servicio del frontend, con este mismo nombre —
+# Railway lo pasa automáticamente como build arg si coincide con el ARG de abajo.
 ARG VITE_API_URL
-ARG VITE_NOMBRE_APP
 ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_NOMBRE_APP=$VITE_NOMBRE_APP
 
 RUN npm run build
 

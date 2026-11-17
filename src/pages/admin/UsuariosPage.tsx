@@ -8,6 +8,7 @@ import {
 import type { UsuarioDto } from "@/types/usuario";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { isAxiosError } from "axios";
 import {
   Select,
   SelectContent,
@@ -19,6 +20,13 @@ import Paginador from "@/components/Paginador";
 import BotonExportar from "@/components/BotonExportar";
 import Avatar from "@/components/Avatar";
 import CampoImagen from "@/components/CampoImagen";
+
+function mensajeError(err: unknown, fallback: string): string {
+  if (isAxiosError(err) && typeof err.response?.data?.mensaje === "string") {
+    return err.response.data.mensaje;
+  }
+  return fallback;
+}
 
 const ROL_COLOR: Record<string, string> = {
   Administrador: "var(--color-brand)",
@@ -179,8 +187,8 @@ function UsuariosPage() {
       });
       setEditando(null);
       await cargarUsuarios();
-    } catch {
-      setError("No se pudo guardar el cambio.");
+    } catch (err) {
+      setError(mensajeError(err, "No se pudo guardar el cambio."));
     } finally {
       setGuardando(false);
     }
@@ -201,8 +209,8 @@ function UsuariosPage() {
       setNuevoPassword("");
       setNuevoRolId(ROLES_DISPONIBLES[0].id);
       await cargarUsuarios();
-    } catch {
-      setError("No se pudo crear el usuario.");
+    } catch (err) {
+      setError(mensajeError(err, "No se pudo crear el usuario."));
     } finally {
       setCreandoGuardando(false);
     }

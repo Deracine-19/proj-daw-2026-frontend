@@ -102,8 +102,11 @@ function Login() {
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 403) {
         setError(err.response.data?.mensaje ?? "Tu cuenta está desactivada.");
+      } else if (isReg) {
+        // El backend devuelve un mensaje genérico si el correo ya existe (no revela que está registrado).
+        setError(mensajeErrorAuth(err, "No se pudo crear la cuenta."));
       } else {
-        setError(isReg ? "No se pudo crear la cuenta." : "Correo o contraseña incorrectos.");
+        setError("Correo o contraseña incorrectos.");
       }
     } finally {
       setCargando(false);
